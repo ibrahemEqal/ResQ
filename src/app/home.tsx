@@ -34,7 +34,7 @@ export default function Home() {
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.greeting}>صباح الخير،</Text>
-                        <Text style={styles.userName}>أحمد محمود</Text>
+                        <Text style={styles.userName}>أحمد شنطي</Text>
                         <View style={styles.locationBadge}>
                             <Ionicons name="location" size={12} color={COLORS.secondary} />
                             <Text style={styles.locationText}>جامعة النجاح الوطنية</Text>
