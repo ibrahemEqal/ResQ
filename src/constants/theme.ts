@@ -1,7 +1,5 @@
-import { Colors } from './colors';
-
-export const Theme = {
-  colors: Colors,
+import { COLORS } from '../constants/colors'; export const Theme = {
+  colors: COLORS,
   spacing: {
     xs: 4,
     sm: 8,
