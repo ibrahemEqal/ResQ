@@ -1,8 +1,7 @@
 import { Report } from '../types';
 import { fetchMockReports, createMockReport } from '../data/mockData';
 import { db } from './firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-
+import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 const USE_MOCK_DATA = true;
 
 export const getReports = async (): Promise<Report[]> => {
@@ -11,6 +10,24 @@ export const getReports = async (): Promise<Report[]> => {
     } else {
         const querySnapshot = await getDocs(collection(db, 'reports'));
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
+    }
+};
+export const getReportsByUser = async (userId: string): Promise<Report[]> => {
+    if (USE_MOCK_DATA) {
+        const allReports = await fetchMockReports();
+        return allReports.filter(report => report.userId === userId);
+    } else {
+        const q = query(
+            collection(db, 'reports'),
+            where('userId', '==', userId)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        })) as Report[];
     }
 };
 

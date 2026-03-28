@@ -23,6 +23,10 @@ export default function RootLayout() {
         name="dashboard"
         options={{ title: 'لوحة التحكم' }}
       />
+      <Stack.Screen
+       name="my-report-history"
+       options={{ title: "سجل البلاغات" }}
+      />
     </Stack>
   );
 }

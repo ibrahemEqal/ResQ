@@ -103,7 +103,9 @@ export default function Home() {
                     </TouchableOpacity>
 
                     {/* Card 4: History */}
-                    <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8}>
+                   <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8} onPress={() => {
+  router.push('/my-report-history');
+}}>
                         <View style={styles.cardHeader}>
                             <View style={[styles.iconWrapper, { backgroundColor: '#FFEBEE' }]}>
                                 <Ionicons name="time" size={24} color="#C62828" />
