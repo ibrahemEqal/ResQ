@@ -30,6 +30,5 @@ export interface Report {
   longitude?: number;
   imageUrl?: string;
   status: ReportStatus;
-  priority: ReportPriority;
   createdAt: string | Date;
 }
