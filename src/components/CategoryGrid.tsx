@@ -1,7 +1,17 @@
+import { COLORS } from "@/constants/colors";
+import { EmergencyType, ReportPriority } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { COLORS } from "../constants/colors";
-import { EmergencyType } from "../types";
+
+const PRIORITY_STYLE: Record<
+  ReportPriority,
+  { bg: string; text: string; label: string }
+> = {
+  Critical: { bg: "#FFEDED", text: "#EF4444", label: "Critical" },
+  High: { bg: "#FEE2E2", text: "#DC2626", label: "High" },
+  Medium: { bg: "#FFFBEB", text: "#F59E0B", label: "Medium" },
+  Low: { bg: "#F3F4F6", text: "#6B7280", label: "Low" },
+};
 
 export const CATEGORIES: {
   type: EmergencyType;
@@ -9,6 +19,7 @@ export const CATEGORIES: {
   icon: string;
   color: string;
   bg: string;
+  priority: ReportPriority;
 }[] = [
   {
     type: "Fire",
@@ -16,6 +27,7 @@ export const CATEGORIES: {
     icon: "flame",
     color: "#FF4B2B",
     bg: "#FFF0EE",
+    priority: "Critical",
   },
   {
     type: "Fainting",
@@ -23,6 +35,7 @@ export const CATEGORIES: {
     icon: "medical",
     color: "#0083B0",
     bg: "#EBF8FF",
+    priority: "Medium",
   },
   {
     type: "Security",
@@ -30,6 +43,7 @@ export const CATEGORIES: {
     icon: "shield-half",
     color: "#7B2FBE",
     bg: "#F5EEFF",
+    priority: "Critical",
   },
   {
     type: "Electrical",
@@ -37,6 +51,7 @@ export const CATEGORIES: {
     icon: "flash",
     color: "#F59E0B",
     bg: "#FFFBEB",
+    priority: "Low",
   },
   {
     type: "Injury",
@@ -44,6 +59,7 @@ export const CATEGORIES: {
     icon: "bandage",
     color: "#EF4444",
     bg: "#FFEDED",
+    priority: "Medium",
   },
   {
     type: "Other",
@@ -51,6 +67,7 @@ export const CATEGORIES: {
     icon: "alert-circle",
     color: "#6B7280",
     bg: "#F3F4F6",
+    priority: "Low",
   },
 ];
 
@@ -76,6 +93,7 @@ export default function CategoryGrid({ selectedCategory, onSelect }: Props) {
             activeOpacity={0.75}
             onPress={() => onSelect(cat.type)}
           >
+            {/* Icon circle — filled with category color when active */}
             <View
               style={[
                 styles.iconWrapper,
@@ -97,6 +115,22 @@ export default function CategoryGrid({ selectedCategory, onSelect }: Props) {
             >
               {cat.label}
             </Text>
+
+            <View
+              style={[
+                styles.priorityBadge,
+                { backgroundColor: PRIORITY_STYLE[cat.priority].bg },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.priorityText,
+                  { color: PRIORITY_STYLE[cat.priority].text },
+                ]}
+              >
+                {PRIORITY_STYLE[cat.priority].label}
+              </Text>
+            </View>
 
             {isActive && (
               <View style={[styles.checkBadge, { backgroundColor: cat.color }]}>
@@ -155,5 +189,16 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     justifyContent: "center",
     alignItems: "center",
+  },
+  priorityBadge: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  priorityText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
 });

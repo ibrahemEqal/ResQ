@@ -1,8 +1,9 @@
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
+import { CATEGORIES } from "../../components/CategoryGrid";
 import { submitReport } from "../../services/reportService";
-import { EmergencyType } from "../../types";
+import { EmergencyType, ReportPriority } from "../../types";
 
 const DUMMY_LOCATION = "مبنى الهندسة - الطابق الثاني، جامعة النجاح";
 
@@ -21,12 +22,14 @@ export type MediaFile = { name: string; type: "image" | "audio" };
 
 export interface ReportStore {
   selectedCategory: EmergencyType | null;
+  priority: ReportPriority | undefined;
   description: string;
   location: string | null;
   mediaFile: MediaFile | null;
   locationLoading: boolean;
   mediaLoading: boolean;
   submitting: boolean;
+
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
   submitScale: Animated.Value;
@@ -39,11 +42,22 @@ export interface ReportStore {
 }
 
 export function useReportStore(): ReportStore {
-  const [selectedCategory, setSelectedCategory] =
+  const [selectedCategory, setSelectedCategoryRaw] =
     useState<EmergencyType | null>(null);
+  const [priority, setPriority] = useState<ReportPriority | undefined>(
+    undefined,
+  );
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
+
+  const setSelectedCategory = (category: EmergencyType) => {
+    setSelectedCategoryRaw(category);
+    const match = CATEGORIES.find(
+      (c: (typeof CATEGORIES)[0]) => c.type === category,
+    );
+    setPriority(match?.priority ?? undefined);
+  };
 
   const [locationLoading, setLocationLoading] = useState(false);
   const [mediaLoading, setMediaLoading] = useState(false);
@@ -103,6 +117,7 @@ export function useReportStore(): ReportStore {
         type: selectedCategory,
         description: description.trim() || "لا يوجد وصف",
         location: location ?? "غير محدد",
+        priority: priority ?? "Low",
       });
 
       Alert.alert(
@@ -119,15 +134,18 @@ export function useReportStore(): ReportStore {
 
   return {
     selectedCategory,
+    priority,
     description,
     location,
     mediaFile,
     locationLoading,
     mediaLoading,
     submitting,
+    // Animations
     fadeAnim,
     slideAnim,
     submitScale,
+    // Handlers
     setSelectedCategory,
     setDescription,
     handleGetLocation,

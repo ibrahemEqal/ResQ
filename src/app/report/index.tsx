@@ -10,17 +10,21 @@ import {
   Text,
   View,
 } from "react-native";
+import { COLORS } from "../../constants/colors";
+import { ReportPriority } from "../../types";
+
 import CategoryGrid from "../../components/CategoryGrid";
 import DescriptionInput from "../../components/DescriptionInput";
 import LocationButton from "../../components/LocationButton";
 import MediaButton from "../../components/MediaButton";
 import SubmitButton from "../../components/SubmitButton";
-import { COLORS } from "../../constants/colors";
+
 import { useReportStore } from "./useReportStore";
 
 export default function ReportScreen() {
   const {
     selectedCategory,
+    priority,
     description,
     location,
     mediaFile,
@@ -79,7 +83,9 @@ export default function ReportScreen() {
             selectedCategory={selectedCategory}
             onSelect={setSelectedCategory}
           />
+          {priority && <PrioritySummary priority={priority} />}
 
+          {/* ══ Section 2: Description ═══════════════ */}
           <SectionLabel icon="create" title="وصف الحادث" />
           <DescriptionInput value={description} onChange={setDescription} />
 
@@ -111,6 +117,55 @@ export default function ReportScreen() {
     </SafeAreaView>
   );
 }
+
+const PRIORITY_CONFIG: Record<
+  ReportPriority,
+  { dot: string; text: string; bg: string }
+> = {
+  Critical: { dot: "#EF4444", text: "#EF4444", bg: "#FFEDED" },
+  High: { dot: "#DC2626", text: "#DC2626", bg: "#FEE2E2" },
+  Medium: { dot: "#F59E0B", text: "#F59E0B", bg: "#FFFBEB" },
+  Low: { dot: "#6B7280", text: "#6B7280", bg: "#F3F4F6" },
+};
+
+function PrioritySummary({ priority }: { priority: ReportPriority }) {
+  const cfg = PRIORITY_CONFIG[priority];
+  return (
+    <View style={[priorityRow.wrapper, { backgroundColor: cfg.bg }]}>
+      <View style={[priorityRow.dot, { backgroundColor: cfg.dot }]} />
+      <Text style={priorityRow.label}>الأولوية:</Text>
+      <Text style={[priorityRow.value, { color: cfg.text }]}>{priority}</Text>
+    </View>
+  );
+}
+
+const priorityRow = StyleSheet.create({
+  wrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    marginBottom: 4,
+    gap: 6,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
+  },
+  value: {
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 0.3,
+  },
+});
 
 function SectionLabel({
   icon,
