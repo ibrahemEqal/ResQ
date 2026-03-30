@@ -1,3 +1,10 @@
+/**
+ * useReportStore.ts
+ * Single Responsibility: Own ALL state and business logic for the report screen.
+ * No component file should import useState or call submitReport directly —
+ * everything flows through this hook.
+ */
+
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
@@ -22,7 +29,7 @@ export type MediaFile = { name: string; type: "image" | "audio" };
 
 export interface ReportStore {
   selectedCategory: EmergencyType | null;
-  priority: ReportPriority | undefined;
+  priority: ReportPriority | null;
   description: string;
   location: string | null;
   mediaFile: MediaFile | null;
@@ -42,11 +49,10 @@ export interface ReportStore {
 }
 
 export function useReportStore(): ReportStore {
+  // ── Form state ──────────────────────────────
   const [selectedCategory, setSelectedCategoryRaw] =
     useState<EmergencyType | null>(null);
-  const [priority, setPriority] = useState<ReportPriority | undefined>(
-    undefined,
-  );
+  const [priority, setPriority] = useState<ReportPriority | null>(null);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
@@ -54,9 +60,9 @@ export function useReportStore(): ReportStore {
   const setSelectedCategory = (category: EmergencyType) => {
     setSelectedCategoryRaw(category);
     const match = CATEGORIES.find(
-      (c: (typeof CATEGORIES)[0]) => c.type === category,
+      (c: (typeof CATEGORIES)[number]) => c.type === category,
     );
-    setPriority(match?.priority ?? undefined);
+    setPriority(match?.priority ?? null);
   };
 
   const [locationLoading, setLocationLoading] = useState(false);
@@ -117,7 +123,7 @@ export function useReportStore(): ReportStore {
         type: selectedCategory,
         description: description.trim() || "لا يوجد وصف",
         location: location ?? "غير محدد",
-        priority: priority ?? "Low",
+        priority: priority ?? undefined,
       });
 
       Alert.alert(
@@ -141,11 +147,9 @@ export function useReportStore(): ReportStore {
     locationLoading,
     mediaLoading,
     submitting,
-    // Animations
     fadeAnim,
     slideAnim,
     submitScale,
-    // Handlers
     setSelectedCategory,
     setDescription,
     handleGetLocation,
