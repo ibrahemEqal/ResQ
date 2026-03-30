@@ -1,22 +1,9 @@
-/**
- * useReportStore.ts
- * Single Responsibility: Own ALL state and business logic for the report screen.
- * No component file should import useState or call submitReport directly —
- * everything flows through this hook.
- */
-
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
 import { submitReport } from "../../services/reportService";
 import { EmergencyType } from "../../types";
 
-// ─────────────────────────────────────────────
-// Dummy helpers
-// Replace with real implementations when ready:
-//   expo-location  → Location.getCurrentPositionAsync()
-//   expo-image-picker → ImagePicker.launchImageLibraryAsync()
-// ─────────────────────────────────────────────
 const DUMMY_LOCATION = "مبنى الهندسة - الطابق الثاني، جامعة النجاح";
 
 const fakeGetLocation = (): Promise<string> =>
@@ -30,13 +17,9 @@ const fakePickMedia = (): Promise<{ name: string; type: "image" | "audio" }> =>
     ),
   );
 
-// ─────────────────────────────────────────────
-// Types — exported so components can use them in props
-// ─────────────────────────────────────────────
 export type MediaFile = { name: string; type: "image" | "audio" };
 
 export interface ReportStore {
-  // State slices
   selectedCategory: EmergencyType | null;
   description: string;
   location: string | null;
@@ -44,13 +27,10 @@ export interface ReportStore {
   locationLoading: boolean;
   mediaLoading: boolean;
   submitting: boolean;
-
-  // Animations (refs — passed to index.tsx for the entrance animation)
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
   submitScale: Animated.Value;
 
-  // Handlers
   setSelectedCategory: (category: EmergencyType) => void;
   setDescription: (text: string) => void;
   handleGetLocation: () => Promise<void>;
@@ -58,31 +38,21 @@ export interface ReportStore {
   handleSubmit: () => Promise<void>;
 }
 
-// ─────────────────────────────────────────────
-// The hook
-// ─────────────────────────────────────────────
 export function useReportStore(): ReportStore {
-  // ── Form state ──────────────────────────────
   const [selectedCategory, setSelectedCategory] =
     useState<EmergencyType | null>(null);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
 
-  // ── Async loading flags ──────────────────────
   const [locationLoading, setLocationLoading] = useState(false);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Animation values ────────────────────────
-  // Kept here so index.tsx can start the entrance animation after mounting
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const submitScale = useRef(new Animated.Value(1)).current;
 
-  // ── Handlers ────────────────────────────────
-
-  /** Fetches the device GPS location (currently mocked) */
   const handleGetLocation = async () => {
     setLocationLoading(true);
     try {
@@ -95,7 +65,6 @@ export function useReportStore(): ReportStore {
     }
   };
 
-  /** Opens the media picker (currently mocked) */
   const handlePickMedia = async () => {
     setMediaLoading(true);
     try {
@@ -108,14 +77,12 @@ export function useReportStore(): ReportStore {
     }
   };
 
-  /** Validates form, animates the button, and submits the report */
   const handleSubmit = async () => {
     if (!selectedCategory) {
       Alert.alert("تنبيه", "يرجى اختيار نوع الطارئ أولاً.");
       return;
     }
 
-    // Tactile press animation on the submit button
     Animated.sequence([
       Animated.timing(submitScale, {
         toValue: 0.94,
@@ -132,7 +99,7 @@ export function useReportStore(): ReportStore {
     setSubmitting(true);
     try {
       await submitReport({
-        userId: "USER-123", // Replace with real auth user ID
+        userId: "USER-123",
         type: selectedCategory,
         description: description.trim() || "لا يوجد وصف",
         location: location ?? "غير محدد",
@@ -151,7 +118,6 @@ export function useReportStore(): ReportStore {
   };
 
   return {
-    // State
     selectedCategory,
     description,
     location,
@@ -159,11 +125,9 @@ export function useReportStore(): ReportStore {
     locationLoading,
     mediaLoading,
     submitting,
-    // Animations
     fadeAnim,
     slideAnim,
     submitScale,
-    // Handlers
     setSelectedCategory,
     setDescription,
     handleGetLocation,

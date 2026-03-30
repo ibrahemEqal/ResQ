@@ -1,34 +1,21 @@
-/**
- * components/SubmitButton.tsx
- * Single Responsibility: Render the animated submit button and the cancel link.
- * The scale animation ref is passed in from useReportStore so the press
- * animation is triggered by the store's handleSubmit, not inside this component.
- */
-
 import { Ionicons } from "@expo/vector-icons";
 import {
-    ActivityIndicator,
-    Animated,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
+  ActivityIndicator,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
 } from "react-native";
 import { COLORS } from "../constants/colors";
 
-// ─────────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────────
 interface Props {
   submitting: boolean;
-  disabled: boolean; // true when no category is selected
-  submitScale: Animated.Value; // animated ref from useReportStore
+  disabled: boolean;
+  submitScale: Animated.Value;
   onSubmit: () => void;
   onCancel: () => void;
 }
 
-// ─────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────
 export default function SubmitButton({
   submitting,
   disabled,
@@ -38,7 +25,6 @@ export default function SubmitButton({
 }: Props) {
   return (
     <>
-      {/* Wrap button in Animated.View so submitScale drives the press effect */}
       <Animated.View
         style={[styles.wrapper, { transform: [{ scale: submitScale }] }]}
       >
@@ -49,7 +35,6 @@ export default function SubmitButton({
           activeOpacity={0.85}
         >
           {submitting ? (
-            // Spinner replaces content while the network call is in-flight
             <ActivityIndicator color="#FFF" size="small" />
           ) : (
             <>
@@ -65,7 +50,6 @@ export default function SubmitButton({
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Cancel navigates back without submitting */}
       <TouchableOpacity
         style={styles.cancelBtn}
         onPress={onCancel}
@@ -77,9 +61,6 @@ export default function SubmitButton({
   );
 }
 
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
   wrapper: {
     marginTop: 32,
@@ -97,14 +78,13 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 10,
   },
-  // Greyed-out when no category has been chosen yet
   btnDisabled: {
     backgroundColor: "#C0C0C8",
     shadowOpacity: 0,
     elevation: 0,
   },
   icon: {
-    marginLeft: 8, // RTL: icon sits to the left of the text
+    marginLeft: 8,
   },
   label: {
     fontSize: 18,

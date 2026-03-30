@@ -1,33 +1,20 @@
-/**
- * components/MediaButton.tsx
- * Single Responsibility: Render the "attach photo / audio" action button.
- * Shows a spinner while picking, and a filename chip once a file is attached.
- * Owns zero state — all data and the trigger handler come from props.
- */
-
 import { Ionicons } from "@expo/vector-icons";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { MediaFile } from "../app/report/useReportStore";
 import { COLORS } from "../constants/colors";
 
-// ─────────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────────
 interface Props {
-  mediaFile: MediaFile | null; // null = nothing attached yet
+  mediaFile: MediaFile | null;
   loading: boolean;
   onPress: () => void;
 }
 
-// ─────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────
 export default function MediaButton({ mediaFile, loading, onPress }: Props) {
   const isSet = mediaFile !== null;
 
@@ -38,7 +25,6 @@ export default function MediaButton({ mediaFile, loading, onPress }: Props) {
       disabled={loading}
       activeOpacity={0.8}
     >
-      {/* Spinner while picking, icon otherwise */}
       {loading ? (
         <ActivityIndicator color={COLORS.warning} size="small" />
       ) : (
@@ -53,7 +39,6 @@ export default function MediaButton({ mediaFile, loading, onPress }: Props) {
         {isSet ? "تم الإرفاق" : "إرفاق صورة / صوت"}
       </Text>
 
-      {/* File chip — shown once a file is selected */}
       {isSet && mediaFile && (
         <View style={styles.chip}>
           <Ionicons
@@ -70,9 +55,6 @@ export default function MediaButton({ mediaFile, loading, onPress }: Props) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
   btn: {
     flex: 1,
@@ -91,7 +73,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  // Active state: solid amber border + warm tint background
   btnActive: {
     borderColor: COLORS.warning,
     borderStyle: "solid",
@@ -107,7 +88,6 @@ const styles = StyleSheet.create({
   labelActive: {
     color: COLORS.warning,
   },
-  // Small pill showing the attached filename
   chip: {
     flexDirection: "row",
     alignItems: "center",

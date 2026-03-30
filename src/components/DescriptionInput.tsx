@@ -1,25 +1,13 @@
-/**
- * components/DescriptionInput.tsx
- * Single Responsibility: Render the multiline Arabic text input and
- * its character counter. Owns zero state — value and onChange come from props.
- */
-
 import { StyleSheet, Text, TextInput } from "react-native";
 import { COLORS } from "../constants/colors";
 
 const MAX_LENGTH = 300;
 
-// ─────────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────────
 interface Props {
   value: string;
   onChange: (text: string) => void;
 }
 
-// ─────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────
 export default function DescriptionInput({ value, onChange }: Props) {
   return (
     <>
@@ -30,13 +18,12 @@ export default function DescriptionInput({ value, onChange }: Props) {
         multiline
         numberOfLines={4}
         textAlignVertical="top"
-        textAlign="right" // RTL: text starts from the right
+        textAlign="right"
         value={value}
         onChangeText={onChange}
         maxLength={MAX_LENGTH}
       />
 
-      {/* Character counter — aligned left to sit at the trailing RTL edge */}
       <Text style={styles.counter}>
         {value.length} / {MAX_LENGTH}
       </Text>
@@ -44,9 +31,6 @@ export default function DescriptionInput({ value, onChange }: Props) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
   input: {
     backgroundColor: COLORS.surface,

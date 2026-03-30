@@ -1,15 +1,3 @@
-/**
- * index.tsx
- * Single Responsibility: Composition root for the Report screen.
- * This file ONLY:
- *   1. Calls useReportStore() to get all state + handlers
- *   2. Runs the entrance animation on mount
- *   3. Renders layout (SafeAreaView, ScrollView, section labels)
- *   4. Passes the correct slices of state to each child component
- *
- * Zero business logic lives here — no useState, no Alert, no submitReport.
- */
-
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect } from "react";
@@ -22,24 +10,15 @@ import {
   Text,
   View,
 } from "react-native";
-import { COLORS } from "../../constants/colors";
-
-// ── Child components ─────────────────────────
 import CategoryGrid from "../../components/CategoryGrid";
 import DescriptionInput from "../../components/DescriptionInput";
 import LocationButton from "../../components/LocationButton";
 import MediaButton from "../../components/MediaButton";
 import SubmitButton from "../../components/SubmitButton";
-
-// ── State manager ────────────────────────────
+import { COLORS } from "../../constants/colors";
 import { useReportStore } from "./useReportStore";
 
-// ─────────────────────────────────────────────
-// Screen
-// ─────────────────────────────────────────────
 export default function ReportScreen() {
-  // Destructure every piece of state and every handler from the store.
-  // This is the ONLY place useReportStore is called.
   const {
     selectedCategory,
     description,
@@ -58,9 +37,6 @@ export default function ReportScreen() {
     handleSubmit,
   } = useReportStore();
 
-  // ── Entrance animation ───────────────────────
-  // Slides content up and fades it in when the screen mounts.
-  // The animation refs live in the store; we only start them here.
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -77,9 +53,6 @@ export default function ReportScreen() {
     ]).start();
   }, []);
 
-  // ─────────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safeArea}>
       <Animated.View
@@ -94,7 +67,6 @@ export default function ReportScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Page title ── */}
           <View style={styles.titleBlock}>
             <Text style={styles.pageTitle}>بلاغ طارئ</Text>
             <Text style={styles.pageSubtitle}>
@@ -102,18 +74,15 @@ export default function ReportScreen() {
             </Text>
           </View>
 
-          {/* ══ Section 1: Category ══════════════════ */}
           <SectionLabel icon="grid" title="نوع الطارئ" required />
           <CategoryGrid
             selectedCategory={selectedCategory}
             onSelect={setSelectedCategory}
           />
 
-          {/* ══ Section 2: Description ═══════════════ */}
           <SectionLabel icon="create" title="وصف الحادث" />
           <DescriptionInput value={description} onChange={setDescription} />
 
-          {/* ══ Section 3: Location + Media ══════════ */}
           <SectionLabel icon="attach" title="الموقع والوسائط" />
           <View style={styles.actionRow}>
             <LocationButton
@@ -128,10 +97,9 @@ export default function ReportScreen() {
             />
           </View>
 
-          {/* ══ Submit + Cancel ═══════════════════════ */}
           <SubmitButton
             submitting={submitting}
-            disabled={!selectedCategory} // disabled until a category is chosen
+            disabled={!selectedCategory}
             submitScale={submitScale}
             onSubmit={handleSubmit}
             onCancel={() => router.back()}

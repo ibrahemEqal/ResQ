@@ -1,18 +1,8 @@
-/**
- * components/CategoryGrid.tsx
- * Single Responsibility: Render the 6 emergency category cards and
- * call onSelect when the user taps one. Owns zero state.
- */
-
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../constants/colors";
 import { EmergencyType } from "../types";
 
-// ─────────────────────────────────────────────
-// Category data — lives here because it is purely
-// a UI concern (labels, icons, colours).
-// ─────────────────────────────────────────────
 export const CATEGORIES: {
   type: EmergencyType;
   label: string;
@@ -64,17 +54,11 @@ export const CATEGORIES: {
   },
 ];
 
-// ─────────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────────
 interface Props {
   selectedCategory: EmergencyType | null;
   onSelect: (category: EmergencyType) => void;
 }
 
-// ─────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────
 export default function CategoryGrid({ selectedCategory, onSelect }: Props) {
   return (
     <View style={styles.grid}>
@@ -92,7 +76,6 @@ export default function CategoryGrid({ selectedCategory, onSelect }: Props) {
             activeOpacity={0.75}
             onPress={() => onSelect(cat.type)}
           >
-            {/* Icon circle — filled with category color when active */}
             <View
               style={[
                 styles.iconWrapper,
@@ -115,7 +98,6 @@ export default function CategoryGrid({ selectedCategory, onSelect }: Props) {
               {cat.label}
             </Text>
 
-            {/* Check badge — only visible when this card is selected */}
             {isActive && (
               <View style={[styles.checkBadge, { backgroundColor: cat.color }]}>
                 <Ionicons name="checkmark" size={10} color="#FFF" />
@@ -128,9 +110,6 @@ export default function CategoryGrid({ selectedCategory, onSelect }: Props) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
@@ -167,7 +146,6 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     textAlign: "center",
   },
-  // Positioned badge in the top-left corner (RTL layout)
   checkBadge: {
     position: "absolute",
     top: 10,
