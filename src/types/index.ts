@@ -23,4 +23,5 @@ export interface Report {
     imageUrl?: string; 
     status: ReportStatus;
     createdAt: string | Date;
+    priority?: string;
 }
