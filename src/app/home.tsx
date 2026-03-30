@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Animated, Easin
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
+import * as Haptics from 'expo-haptics';
 
 export default function Home() {
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -26,6 +27,11 @@ export default function Home() {
         ).start();
     }, [pulseAnim]);
 
+    const handleSOSPress = () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); 
+        router.push('/report');
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
@@ -34,7 +40,7 @@ export default function Home() {
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.greeting}>صباح الخير،</Text>
-                        <Text style={styles.userName}>أحمد محمود</Text>
+                        <Text style={styles.userName}>أحمد شنطي</Text>
                         <View style={styles.locationBadge}>
                             <Ionicons name="location" size={12} color={COLORS.secondary} />
                             <Text style={styles.locationText}>جامعة النجاح الوطنية</Text>
@@ -56,10 +62,28 @@ export default function Home() {
                         }
                     ]} />
 
-                    <TouchableOpacity style={styles.sosButton} activeOpacity={0.8}>
-                        <Ionicons name="warning" size={48} color={COLORS.surface} />
-                        <Text style={styles.sosText}>SOS</Text>
-                    </TouchableOpacity>
+                    {/* Animated SOS Button Section */}
+                    <View style={styles.sosContainer}>
+                        <Animated.View style={[
+                            styles.sosPulseCircle,
+                            {
+                                transform: [{ scale: pulseAnim }], opacity: pulseAnim.interpolate({
+                                    inputRange: [1, 1.15], outputRange: [0.6, 0]
+                                })
+                            }
+                        ]} />
+
+                        <TouchableOpacity
+                            style={styles.sosButton}
+                            activeOpacity={0.8}
+                            onLongPress={handleSOSPress}
+                        >
+                            <Ionicons name="warning" size={48} color={COLORS.surface} />
+                            <Text style={styles.sosText}>SOS</Text>
+                        </TouchableOpacity>
+
+                        <Text style={styles.sosInstruction}>اضغط مطولاً للإبلاغ عن حالة طارئة</Text>
+                    </View>
 
                     <Text style={styles.sosInstruction}>اضغط مطولاً للإبلاغ عن حالة طارئة</Text>
                 </View>
@@ -118,6 +142,8 @@ export default function Home() {
         </SafeAreaView>
     );
 }
+
+
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#F8F9FA' },
