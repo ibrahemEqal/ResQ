@@ -1,29 +1,58 @@
+import { collection, addDoc, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebaseConfig'; 
 import { Report } from '../types';
-import { fetchMockReports, createMockReport } from '../data/mockData';
-import { db } from './firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 
-const USE_MOCK_DATA = true;
+const REPORTS_COLLECTION = 'reports';
 
-export const getReports = async (): Promise<Report[]> => {
-    if (USE_MOCK_DATA) {
-        return await fetchMockReports();
-    } else {
-        const querySnapshot = await getDocs(collection(db, 'reports'));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
+export const submitReport = async (reportData: Omit<Report, 'id' | 'createdAt' | 'status'>) => {
+    try {
+        const newReport = {
+            ...reportData,
+            status: 'Open',
+            createdAt: new Date().toISOString(), 
+        };
+
+        const docRef = await addDoc(collection(db, REPORTS_COLLECTION), newReport);
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error("Error adding report: ", error);
+        return { success: false, error };
     }
 };
 
+export const getReportsByUser = async (userId: string): Promise<Report[]> => {
+    try {
+        const q = query(
+            collection(db, REPORTS_COLLECTION),
+            where("userId", "==", userId)
+        );
 
-export const submitReport = async (reportData: Omit<Report, 'id' | 'createdAt' | 'status'>) => {
-    if (USE_MOCK_DATA) {
-        return await createMockReport(reportData);
-    } else {
-        const docRef = await addDoc(collection(db, 'reports'), {
-            ...reportData,
-            status: 'Open',
-            createdAt: serverTimestamp(),
+        const querySnapshot = await getDocs(q);
+        const reports: Report[] = [];
+
+        querySnapshot.forEach((doc) => {
+            reports.push({ id: doc.id, ...doc.data() } as Report);
         });
-        return docRef.id;
+
+        return reports;
+    } catch (error) {
+        console.error("Error getting reports: ", error);
+        return [];
+    }
+};
+
+export const getReportById = async (id: string): Promise<Report | null> => {
+    try {
+        const docRef = doc(db, REPORTS_COLLECTION, id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as Report;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting report details: ", error);
+        return null;
     }
 };
