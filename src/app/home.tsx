@@ -71,7 +71,12 @@ export default function Home() {
             ]}
           />
 
-          <TouchableOpacity style={styles.sosButton} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.sosButton}
+            activeOpacity={0.8}
+            onLongPress={() => router.push('/report')} 
+            delayLongPress={800} 
+          >
             <Ionicons name="warning" size={48} color={COLORS.surface} />
             <Text style={styles.sosText}>SOS</Text>
           </TouchableOpacity>

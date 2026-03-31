@@ -1,23 +1,18 @@
-import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef } from "react";
-import {
-    Animated,
-    Dimensions,
-    Easing,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { MOCK_REPORTS_SUMMARY } from "../data/mockData";
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Animated, Easing, TouchableOpacity, Dimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '../config/firebaseConfig'; 
+import { Report } from '../types'; 
+import { router } from 'expo-router';
 
-const { width } = Dimensions.get("window");
+const { width } = Dimensions.get('window');
 
 export default function Dashboard() {
-  const { open, critical, resolved, recent } = MOCK_REPORTS_SUMMARY;
+  const [stats, setStats] = useState({ open: 0, critical: 0, resolved: 0 });
+  const [recentLogs, setRecentLogs] = useState<Report[]>([]);
 
   const radarAnim1 = useRef(new Animated.Value(0)).current;
   const radarAnim2 = useRef(new Animated.Value(0)).current;
@@ -27,28 +22,46 @@ export default function Dashboard() {
       return Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 3000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]),
+          Animated.timing(anim, { toValue: 1, duration: 3000, easing: Easing.out(Easing.cubic), useNativeDriver: true })
+        ])
       );
     };
     createRadarWave(radarAnim1, 0).start();
     createRadarWave(radarAnim2, 1500).start();
+
+    const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let openCount = 0;
+      let criticalCount = 0;
+      let resolvedCount = 0;
+      const fetchedRecent: any[] = [];
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+
+        if (data.status === 'Open' || data.status === 'In Progress') openCount++;
+        if (data.priority === 'High' || data.status === 'Critical') criticalCount++;
+        if (data.status === 'Resolved') resolvedCount++;
+
+        if (fetchedRecent.length < 5) {
+          fetchedRecent.push({ id: doc.id, ...data });
+        }
+      });
+
+      setStats({ open: openCount, critical: criticalCount, resolved: resolvedCount });
+      setRecentLogs(fetchedRecent);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const chartData = [4, 7, 2, 9, 3, 5, critical + open];
-  const maxChartValue = Math.max(...chartData);
+  const chartData = [4, 7, 2, 9, 3, 5, stats.critical + stats.open];
+  const maxChartValue = Math.max(...chartData, 1);
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={["#050B14", "#0A1428", "#050B14"]}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={['#050B14', '#0A1428', '#050B14']} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -62,10 +75,8 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 50 }}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 50 }}>
+
         {/* Campus Live Radar Section */}
         <BlurView intensity={20} tint="dark" style={styles.radarCard}>
           <View style={styles.radarHeader}>
@@ -77,91 +88,37 @@ export default function Dashboard() {
           </View>
 
           <View style={styles.radarContainer}>
-            <Animated.View
-              style={[
-                styles.radarWave,
-                {
-                  transform: [
-                    {
-                      scale: radarAnim1.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.2, 2],
-                      }),
-                    },
-                  ],
-                  opacity: radarAnim1.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.8, 0.3, 0],
-                  }),
-                },
-              ]}
-            />
-            <Animated.View
-              style={[
-                styles.radarWave,
-                {
-                  transform: [
-                    {
-                      scale: radarAnim2.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.2, 2],
-                      }),
-                    },
-                  ],
-                  opacity: radarAnim2.interpolate({
-                    inputRange: [0, 0.5, 1],
-                    outputRange: [0.8, 0.3, 0],
-                  }),
-                },
-              ]}
-            />
+            <Animated.View style={[styles.radarWave, {
+              transform: [{ scale: radarAnim1.interpolate({ inputRange: [0, 1], outputRange: [0.2, 2] }) }],
+              opacity: radarAnim1.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.8, 0.3, 0] })
+            }]} />
+            <Animated.View style={[styles.radarWave, {
+              transform: [{ scale: radarAnim2.interpolate({ inputRange: [0, 1], outputRange: [0.2, 2] }) }],
+              opacity: radarAnim2.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.8, 0.3, 0] })
+            }]} />
 
             <View style={styles.radarCenter}>
               <Ionicons name="location" size={24} color="#00F0FF" />
             </View>
 
-            {critical > 0 && (
+            {stats.critical > 0 && (
               <View style={[styles.radarTarget, { top: 30, right: 50 }]}>
                 <View style={styles.targetDot} />
               </View>
             )}
           </View>
-          <Text style={styles.radarStatusText}>
-            تم اكتشاف {critical} حالات حرجة في نطاق الجامعة
-          </Text>
+          <Text style={styles.radarStatusText}>تم اكتشاف {stats.critical} حالات حرجة في نطاق الجامعة</Text>
         </BlurView>
 
+        {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <StatBox
-            title="حالات حرجة"
-            count={critical}
-            color="#FF2A2A"
-            icon="warning"
-            trend="+2"
-          />
-          <StatBox
-            title="قيد المعالجة"
-            count={open}
-            color="#FFB800"
-            icon="time"
-            trend="-1"
-          />
-          <StatBox
-            title="تم الحل"
-            count={resolved}
-            color="#00FF66"
-            icon="shield-checkmark"
-            trend="+14"
-          />
-          <StatBox
-            title="فرق الاستجابة"
-            count={4}
-            color="#00F0FF"
-            icon="people"
-            trend="نشط"
-          />
+          <StatBox title="حالات حرجة" count={stats.critical} color="#FF2A2A" icon="warning" trend={stats.critical > 0 ? `+${stats.critical}` : "0"} />
+          <StatBox title="قيد المعالجة" count={stats.open} color="#FFB800" icon="time" trend={stats.open > 0 ? "نشط" : "0"} />
+          <StatBox title="تم الحل" count={stats.resolved} color="#00FF66" icon="shield-checkmark" trend={`+${stats.resolved}`} />
+          <StatBox title="فرق الاستجابة" count={4} color="#00F0FF" icon="people" trend="نشط" />
         </View>
 
+        {/* Chart Section */}
         <BlurView intensity={20} tint="dark" style={styles.chartCard}>
           <Text style={styles.sectionTitle}>معدل البلاغات (آخر 7 أيام)</Text>
           <View style={styles.chartContainer}>
@@ -172,24 +129,12 @@ export default function Dashboard() {
                 <View key={index} style={styles.chartBarWrapper}>
                   <View style={styles.chartBarBg}>
                     <LinearGradient
-                      colors={
-                        isToday
-                          ? ["#FF2A2A", "#990000"]
-                          : ["#00F0FF", "#0055FF"]
-                      }
-                      style={[
-                        styles.chartBarFill,
-                        { height: `${heightPercent}%` },
-                      ]}
+                      colors={isToday ? ['#FF2A2A', '#990000'] : ['#00F0FF', '#0055FF']}
+                      style={[styles.chartBarFill, { height: `${heightPercent}%` }]}
                     />
                   </View>
-                  <Text
-                    style={[
-                      styles.chartLabel,
-                      isToday && { color: "#FF2A2A", fontWeight: "bold" },
-                    ]}
-                  >
-                    {isToday ? "اليوم" : `ي-${index + 1}`}
+                  <Text style={[styles.chartLabel, isToday && { color: '#FF2A2A', fontWeight: 'bold' }]}>
+                    {isToday ? 'اليوم' : `ي-${index + 1}`}
                   </Text>
                 </View>
               );
@@ -198,36 +143,25 @@ export default function Dashboard() {
         </BlurView>
 
         {/* Action Log / Recent Alerts */}
-        <Text
-          style={[styles.sectionTitle, { marginTop: 10, marginBottom: 15 }]}
-        >
-          سجل العمليات المباشر
-        </Text>
-        {recent.map((report) => (
+        <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 15 }]}>سجل العمليات المباشر</Text>
+        {recentLogs.map((report) => (
           <View key={report.id} style={styles.logItem}>
-            <View
-              style={[
-                styles.logIndicator,
-                {
-                  backgroundColor:
-                    report.status === "Critical" ? "#FF2A2A" : "#FFB800",
-                },
-              ]}
-            />
+            <View style={[styles.logIndicator, { backgroundColor: report.priority === 'High' || report.status === 'Critical' ? '#FF2A2A' : '#FFB800' }]} />
             <View style={styles.logContent}>
               <View style={styles.logHeader}>
-                <Text style={styles.logType}>
-                  [ {report.type.toUpperCase()} ]
+                <Text style={styles.logType}>[ {report.type?.toUpperCase() || 'بلاغ'} ]</Text>
+                <Text style={styles.logTime}>
+                  {report.createdAt ? new Date(report.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}
                 </Text>
-                <Text style={styles.logTime}>{report.time}</Text>
               </View>
-              <Text style={styles.logLocation}>{report.location}</Text>
+              <Text style={styles.logLocation}>{report.location || 'موقع غير محدد'}</Text>
             </View>
-            <TouchableOpacity style={styles.actionBtn}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => router.push(`/incident/${report.id}` as any)}>
               <Text style={styles.actionBtnText}>تفاصيل</Text>
             </TouchableOpacity>
           </View>
         ))}
+
       </ScrollView>
     </View>
   );
@@ -237,19 +171,13 @@ const StatBox = ({ title, count, color, icon, trend }: any) => (
   <View style={[styles.statBox, { borderColor: `${color}40` }]}>
     <View style={styles.statBoxHeader}>
       <Ionicons name={icon} size={20} color={color} />
-      <Text
-        style={[
-          styles.trendText,
-          { color: trend.includes("-") ? "#00FF66" : color },
-        ]}
-      >
-        {trend}
-      </Text>
+      <Text style={[styles.trendText, { color: trend.includes('-') ? '#00FF66' : color }]}>{trend}</Text>
     </View>
     <Text style={[styles.statCount, { color }]}>{count}</Text>
     <Text style={styles.statTitle}>{title}</Text>
   </View>
 );
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#050B14" },
