@@ -5,12 +5,18 @@ import { RFValue } from 'react-native-responsive-fontsize';
 import CustomInput from '../components/CustomInput';
 import { COLORS } from '../constants/colors';
 import { Theme } from '../constants/theme';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import {doc,setDoc} from 'firebase/firestore';
+import {auth,db} from '../config/firebaseConfig';
+import { router } from 'expo-router';
+
 
 export default function SignupScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading,setLoading]=useState(false);
 
   const [errors, setErrors] = useState({
     fullName: '',
@@ -58,9 +64,35 @@ export default function SignupScreen() {
     return valid;
   };
 
-  const handleSignup = () => {
+  const handleSignup =async () => {
     if (validate()) {
-      Alert.alert('Success', 'Account created successfully');
+      setLoading(true);
+      try{
+        const userCredential=await createUserWithEmailAndPassword(auth,email,password);
+        const user=userCredential.user;
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          fullName: fullName,
+          email: email,
+          role: "student",
+          createdAt: new Date().toISOString()
+        });
+
+        Alert.alert('Success', 'Account created successfully');
+        
+        router.replace('/home'); 
+
+      } catch (error: any) {
+        if (error.code === 'auth/email-already-in-use') {
+          Alert.alert('Error', 'هذا البريد الإلكتروني مستخدم مسبقاً');
+        } else if (error.code === 'auth/invalid-email') {
+          Alert.alert('Error', 'صيغة البريد الإلكتروني غير صحيحة');
+        } else {
+          Alert.alert('Error', error.message);
+        }
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
