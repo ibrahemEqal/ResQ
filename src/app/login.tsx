@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { RFValue } from 'react-native-responsive-fontsize';
 import CustomInput from '../components/CustomInput';
 import { COLORS } from '../constants/colors';
 import { Theme } from '../constants/theme';
 import { router } from 'expo-router';
-import SignupScreen from '../app/signup';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -43,45 +52,56 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Login to continue</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={styles.container}>
+            <View style={styles.card}>
+              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.subtitle}>Login to continue</Text>
 
-        <CustomInput
-          label="Email"
-          iconName="mail-outline"
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          error={errors.email}
-        />
+              <CustomInput
+                label="Email"
+                iconName="mail-outline"
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                error={errors.email}
+              />
 
-        <CustomInput
-          label="Password"
-          iconName="lock-closed-outline"
-          placeholder="Enter your password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          error={errors.password}
-        />
+              <CustomInput
+                label="Password"
+                iconName="lock-closed-outline"
+                placeholder="Enter your password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                error={errors.password}
+              />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
+              <TouchableOpacity style={styles.button} onPress={handleLogin}>
+                <Text style={styles.buttonText}>Login</Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity>
-          <Text style={styles.link}>Forgot Password?</Text>
-        </TouchableOpacity>
+              <TouchableOpacity>
+                <Text style={styles.link}>Forgot Password?</Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/signup')}>
-          <Text style={styles.signupLink}>Don’t have an account? Sign Up</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+              <TouchableOpacity onPress={() => router.push('/signup')}>
+                <Text style={styles.signupLink}>
+                  Don’t have an account? Sign Up
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -100,14 +120,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   title: {
-    fontSize: 28,
+    fontSize: RFValue(24),
     fontWeight: '700',
     color: COLORS.textPrimary,
     textAlign: 'center',
     marginBottom: Theme.spacing.sm,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: RFValue(14),
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: Theme.spacing.xl,
@@ -121,21 +141,21 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: COLORS.surface,
-    fontSize: 16,
+    fontSize: RFValue(16),
     fontWeight: '700',
   },
   link: {
     marginTop: Theme.spacing.lg,
     textAlign: 'center',
     color: COLORS.secondary,
-    fontSize: 14,
+    fontSize: RFValue(13),
     fontWeight: '600',
   },
   signupLink: {
     marginTop: Theme.spacing.md,
     textAlign: 'center',
     color: COLORS.primary,
-    fontSize: 14,
+    fontSize: RFValue(13),
     fontWeight: '700',
   },
 });

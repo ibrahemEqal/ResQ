@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text,TouchableOpacity,StyleSheet,Alert, ScrollView,KeyboardAvoidingView,Platform} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { RFValue } from 'react-native-responsive-fontsize';
 import CustomInput from '../components/CustomInput';
 import { COLORS } from '../constants/colors';
 import { Theme } from '../constants/theme';
@@ -63,56 +65,63 @@ export default function SignupScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Sign up to get started</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.card}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Sign up to get started</Text>
 
-        <CustomInput
-          label="Full Name"
-          iconName="person-outline"
-          placeholder="Enter your full name"
-          value={fullName}
-          onChangeText={setFullName}
-          error={errors.fullName}
-        />
+            <CustomInput
+              label="Full Name"
+              iconName="person-outline"
+              placeholder="Enter your full name"
+              value={fullName}
+              onChangeText={setFullName}
+              error={errors.fullName}
+            />
 
-        <CustomInput
-          label="Email"
-          iconName="mail-outline"
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          error={errors.email}
-        />
+            <CustomInput
+              label="Email"
+              iconName="mail-outline"
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              error={errors.email}
+            />
 
-        <CustomInput
-          label="Password"
-          iconName="lock-closed-outline"
-          placeholder="Create password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          error={errors.password}
-        />
+            <CustomInput
+              label="Password"
+              iconName="lock-closed-outline"
+              placeholder="Create password"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              error={errors.password}
+            />
 
-        <CustomInput
-          label="Confirm Password"
-          iconName="lock-closed-outline"
-          placeholder="Re-enter password"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          error={errors.confirmPassword}
-        />
+            <CustomInput
+              label="Confirm Password"
+              iconName="lock-closed-outline"
+              placeholder="Re-enter password"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              error={errors.confirmPassword}
+            />
 
-        <TouchableOpacity style={styles.button} onPress={handleSignup}>
-          <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+            <TouchableOpacity style={styles.button} onPress={handleSignup}>
+              <Text style={styles.buttonText}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -131,14 +140,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   title: {
-    fontSize: 28,
+    fontSize: RFValue(24), 
     fontWeight: '700',
     color: COLORS.textPrimary,
     textAlign: 'center',
     marginBottom: Theme.spacing.sm,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: RFValue(14),
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: Theme.spacing.xl,
@@ -152,7 +161,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: COLORS.surface,
-    fontSize: 16,
+    fontSize: RFValue(16), 
     fontWeight: '700',
   },
 });
