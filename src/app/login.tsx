@@ -6,7 +6,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
+  ScrollView, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RFValue } from 'react-native-responsive-fontsize';
@@ -14,10 +14,16 @@ import CustomInput from '../components/CustomInput';
 import { COLORS } from '../constants/colors';
 import { Theme } from '../constants/theme';
 import { router } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import {auth} from '../config/firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebaseConfig';
+
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading,setLoading]=useState(false);
 
   const [errors, setErrors] = useState({
     email: '',
@@ -45,9 +51,40 @@ export default function LoginScreen() {
     return valid;
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (validate()) {
-      router.replace('/home');
+      setLoading(true); 
+      
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userUid = userCredential.user.uid;
+        
+        const userDocRef = doc(db, "users", userUid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          
+          if (userData.role === 'security' || userData.role === 'admin') {
+            router.replace('/dashboard');
+          } else {
+            router.replace('/home');
+          }
+        } else {
+          router.replace('/home'); 
+        }
+
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          Alert.alert('خطأ', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
+        } else if (error.code === 'auth/invalid-email') {
+          Alert.alert('خطأ', 'صيغة البريد الإلكتروني غير صحيحة');
+        } else {
+          Alert.alert('حدث خطأ', error.message);
+        }
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -158,4 +195,5 @@ const styles = StyleSheet.create({
     fontSize: RFValue(13),
     fontWeight: '700',
   },
+
 });
