@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { COLORS } from "../../constants/colors";
@@ -31,6 +32,8 @@ export default function ReportScreen() {
     locationLoading,
     mediaLoading,
     submitting,
+    error,
+    clearError,
     fadeAnim,
     slideAnim,
     submitScale,
@@ -65,6 +68,25 @@ export default function ReportScreen() {
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}
       >
+        {error && (
+          <View style={banner.container}>
+            <Ionicons
+              name="alert-circle"
+              size={18}
+              color="#FFF"
+              style={banner.icon}
+            />
+            <Text style={banner.text}>{error}</Text>
+            <TouchableOpacity
+              onPress={clearError}
+              style={banner.closeBtn}
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={18} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
@@ -116,6 +138,32 @@ export default function ReportScreen() {
     </SafeAreaView>
   );
 }
+
+const banner = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  icon: {
+    flexShrink: 0,
+  },
+  text: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFF",
+    textAlign: "right", // RTL
+    lineHeight: 19,
+  },
+  closeBtn: {
+    flexShrink: 0,
+    padding: 2,
+  },
+});
 
 const PRIORITY_CONFIG: Record<
   ReportPriority,
