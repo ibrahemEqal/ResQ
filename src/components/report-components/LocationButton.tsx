@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
-import { COLORS } from "../constants/colors";
+import { COLORS } from "../../constants/colors";
 
 interface Props {
   location: string | null;
@@ -64,7 +64,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  // Active state: solid border + blue tint background
   btnActive: {
     borderColor: COLORS.secondary,
     borderStyle: "solid",
