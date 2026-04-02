@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TextInput } from "react-native";
-import { COLORS } from "../constants/colors";
+import { COLORS } from "../../constants/colors";
 
 const MAX_LENGTH = 300;
 
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   counter: {
-    textAlign: "left", // trailing edge in RTL
+    textAlign: "left",
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 6,

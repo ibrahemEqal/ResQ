@@ -13,11 +13,11 @@ import {
 import { COLORS } from "../../constants/colors";
 import { ReportPriority } from "../../types";
 
-import CategoryGrid from "../../components/CategoryGrid";
-import DescriptionInput from "../../components/DescriptionInput";
-import LocationButton from "../../components/LocationButton";
-import MediaButton from "../../components/MediaButton";
-import SubmitButton from "../../components/SubmitButton";
+import CategoryGrid from "../../components/report-components/CategoryGrid";
+import DescriptionInput from "../../components/report-components/DescriptionInput";
+import LocationButton from "../../components/report-components/LocationButton";
+import MediaButton from "../../components/report-components/MediaButton";
+import SubmitButton from "../../components/report-components/SubmitButton";
 
 import { useReportStore } from "./useReportStore";
 
@@ -85,7 +85,6 @@ export default function ReportScreen() {
           />
           {priority && <PrioritySummary priority={priority} />}
 
-          {/* ══ Section 2: Description ═══════════════ */}
           <SectionLabel icon="create" title="وصف الحادث" />
           <DescriptionInput value={description} onChange={setDescription} />
 
