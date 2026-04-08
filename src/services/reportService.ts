@@ -1,5 +1,5 @@
 import { collection, addDoc, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebaseConfig'; 
+import { db } from './firebaseConfig';
 import { Report } from '../types';
 
 const REPORTS_COLLECTION = 'reports';

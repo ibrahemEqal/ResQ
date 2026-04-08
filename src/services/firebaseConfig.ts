@@ -1,19 +1,16 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDocs-EXAMPLE-KEY",
-    authDomain: "resq-najah.firebaseapp.com",
-    projectId: "resq-najah",
-    storageBucket: "resq-najah.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef123456"
+    apiKey: "AIzaSyBo0LL8IZQbxfa0dJyu9AUzJNZy_Ud1cUQ",
+    authDomain: "resq-a77e9.firebaseapp.com",
+    projectId: "resq-a77e9",
+    storageBucket: "resq-a77e9.firebasestorage.app",
+    messagingSenderId: "991866814936",
+    appId: "1:991866814936:web:882b0e0f948caccfeef2ad"
 };
 
-const app = initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app); 
 export const db = getFirestore(app);
-export const storage = getStorage(app);
