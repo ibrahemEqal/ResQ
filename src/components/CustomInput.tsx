@@ -13,15 +13,17 @@ export default function CustomInput({ label, iconName, error, ...props }: Custom
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
+      
       <View style={[styles.inputContainer, error ? styles.inputError : null]}>
         <Ionicons name={iconName} size={20} color={COLORS.textSecondary} style={styles.icon} />
-        <TextInput 
-          style={styles.input} 
+        <TextInput
+          style={styles.input}
           placeholderTextColor={COLORS.textSecondary}
-          {...props} 
+          {...props}
         />
       </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      {!!error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 }
@@ -29,7 +31,7 @@ export default function CustomInput({ label, iconName, error, ...props }: Custom
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8, marginLeft: 4 },
-  inputContainer: { 
+  inputContainer: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface,
     borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 12, height: 50,
   },
