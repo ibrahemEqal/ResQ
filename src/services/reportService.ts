@@ -51,6 +51,22 @@ export const getReportsByUser = async (userId: string): Promise<Report[]> => {
   }
 };
 
+export const getReports = async (): Promise<Report[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, REPORTS_COLLECTION));
+    const reports: Report[] = [];
+
+    querySnapshot.forEach((doc) => {
+      reports.push({ id: doc.id, ...doc.data() } as Report);
+    });
+
+    return reports;
+  } catch (error) {
+    console.error("Error getting reports: ", error);
+    return [];
+  }
+};
+
 export const getReportById = async (id: string): Promise<Report | null> => {
   try {
     const docRef = doc(db, REPORTS_COLLECTION, id);

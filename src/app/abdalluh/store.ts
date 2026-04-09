@@ -1,0 +1,173 @@
+
+import { getReports } from '@/services/reportService';
+import { EmergencyType, Report, ReportStatus } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+
+// ─── Filter type aliases (exported so components can type their props) ───────
+export type FilterType   = 'All' | EmergencyType;
+export type FilterStatus = 'All' | ReportStatus;
+
+// ─── Static filter option lists (exported for use in FilterPills) ────────────
+export const TYPE_FILTERS: FilterType[] = [
+  'All', 'Fire', 'Fainting', 'Security', 'Electrical', 'Injury', 'Other',
+];
+
+export const STATUS_FILTERS: FilterStatus[] = [
+  'All', 'Critical', 'Open', 'In Progress', 'Resolved',
+];
+
+// ─── Helper: status → brand color ───────────────────────────────────────────
+// Exported so ReportCard, FilterPills, and MapView can all use the same logic
+export const getStatusColor = (status: ReportStatus): string => {
+  switch (status) {
+    case 'Critical':    return '#FF3B30'; // COLORS.primary
+    case 'Open':        return '#FF9500'; // COLORS.warning
+    case 'In Progress': return '#007AFF'; // COLORS.secondary
+    case 'Resolved':    return '#34C759'; // COLORS.success
+    default:            return '#8E8E93'; // COLORS.textSecondary
+  }
+};
+
+// ─── Helper: Arabic status label ────────────────────────────────────────────
+export const getStatusLabel = (status: ReportStatus): string => {
+  switch (status) {
+    case 'Critical':    return 'حرج';
+    case 'Open':        return 'مفتوح';
+    case 'In Progress': return 'قيد المعالجة';
+    case 'Resolved':    return 'تم الحل';
+    default:            return status;
+  }
+};
+
+// ─── Helper: Arabic type label with emoji ────────────────────────────────────
+export const getTypeLabel = (type: EmergencyType): string => {
+  switch (type) {
+    case 'Fire':       return '🔥 حريق';
+    case 'Fainting':   return '🏥 إغماء';
+    case 'Security':   return '🔒 أمني';
+    case 'Electrical': return '⚡ كهربائي';
+    case 'Injury':     return '🩹 إصابة';
+    case 'Other':      return '⚠️ أخرى';
+    default:           return type;
+  }
+};
+
+// ─── Helper: human-readable "time ago" ───────────────────────────────────────
+export const getTimeAgo = (dateStr: string | Date): string => {
+  const date     = new Date(dateStr);
+  const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (diffMins < 1)  return 'الآن';
+  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24)  return `منذ ${diffHrs} ساعة`;
+  return `منذ ${Math.floor(diffHrs / 24)} يوم`;
+};
+
+
+// ─── The shape of everything useLiveEmergencyStore returns ───────────────────
+export interface LiveEmergencyStore {
+  // Raw data
+  reports:          Report[];
+  filteredReports:  Report[];
+  // Async flags
+  loading:          boolean;
+  refreshing:       boolean;
+  error:            string | null;
+  // View mode
+  viewMode:         'list' | 'map';
+  setViewMode:      (mode: 'list' | 'map') => void;
+  // Search
+  searchQuery:      string;
+  setSearchQuery:   (q: string) => void;
+  // Filters
+  selectedType:     FilterType;
+  setSelectedType:  (t: FilterType) => void;
+  selectedStatus:   FilterStatus;
+  setSelectedStatus:(s: FilterStatus) => void;
+  // Card expansion / map selection
+  expandedId:       string | null;
+  setExpandedId:    (id: string | null) => void;
+  // Actions
+  loadReports:      () => Promise<void>;
+  handleRefresh:    () => void;
+}
+
+
+// ─── The hook ─────────────────────────────────────────────────────────────────
+export function useLiveEmergencyStore(): LiveEmergencyStore {
+
+  const [reports,        setReports]        = useState<Report[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [error,          setError]          = useState<string | null>(null);
+  const [viewMode,       setViewMode]       = useState<'list' | 'map'>('list');
+  const [searchQuery,    setSearchQuery]    = useState('');
+  const [selectedType,   setSelectedType]   = useState<FilterType>('All');
+  const [selectedStatus, setSelectedStatus] = useState<FilterStatus>('All');
+  const [expandedId,     setExpandedId]     = useState<string | null>(null);
+
+  // ── Fetch data ──────────────────────────────────────────────────────────────
+  const loadReports = async () => {
+    try {
+      setError(null);
+      const data = await getReports();
+      setReports(data);
+    } catch {
+      setError('فشل في تحميل البلاغات. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Pull-to-refresh: set refreshing flag first, then reload
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadReports();
+  };
+
+  // ── Initial load + 30-second polling ───────────────────────────────────────
+  useEffect(() => {
+    loadReports();
+    const interval = setInterval(loadReports, 30_000);
+    return () => clearInterval(interval); // cleanup on unmount
+  }, []);
+
+  // ── Derived: filtered + searched list ──────────────────────────────────────
+  // useMemo so we only recompute when a dependency actually changes
+  const filteredReports = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return reports.filter((r) => {
+      const matchesSearch =
+        q === '' ||
+        r.location.toLowerCase().includes(q)    ||
+        r.description.toLowerCase().includes(q) ||
+        r.type.toLowerCase().includes(q);
+
+      const matchesType   = selectedType   === 'All' || r.type   === selectedType;
+      const matchesStatus = selectedStatus === 'All' || r.status === selectedStatus;
+
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [reports, searchQuery, selectedType, selectedStatus]);
+
+  return {
+    reports,
+    filteredReports,
+    loading,
+    refreshing,
+    error,
+    viewMode,
+    setViewMode,
+    searchQuery,
+    setSearchQuery,
+    selectedType,
+    setSelectedType,
+    selectedStatus,
+    setSelectedStatus,
+    expandedId,
+    setExpandedId,
+    loadReports,
+    handleRefresh,
+  };
+}
