@@ -1,31 +1,20 @@
-/**
- * useReportStore.ts
- * Single Responsibility: Own ALL state and business logic for the report screen.
- * No component file should import useState or call submitReport directly —
- * everything flows through this hook.
- */
-
+import { auth, storage } from "@/config/firebaseConfig";
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { router } from "expo-router";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
-import { CATEGORIES } from "../../components/CategoryGrid";
+
+import { CATEGORIES } from "../../components/report-components/CategoryGrid";
 import { submitReport } from "../../services/reportService";
 import { EmergencyType, ReportPriority } from "../../types";
 
-const DUMMY_LOCATION = "مبنى الهندسة - الطابق الثاني، جامعة النجاح";
-
-const fakeGetLocation = (): Promise<string> =>
-  new Promise((resolve) => setTimeout(() => resolve(DUMMY_LOCATION), 1200));
-
-const fakePickMedia = (): Promise<{ name: string; type: "image" | "audio" }> =>
-  new Promise((resolve) =>
-    setTimeout(
-      () => resolve({ name: "photo_20240615.jpg", type: "image" }),
-      800,
-    ),
-  );
-
-export type MediaFile = { name: string; type: "image" | "audio" };
+export type MediaFile = {
+  name: string;
+  type: "image" | "audio";
+  url?: string;
+};
 
 export interface ReportStore {
   selectedCategory: EmergencyType | null;
@@ -36,7 +25,8 @@ export interface ReportStore {
   locationLoading: boolean;
   mediaLoading: boolean;
   submitting: boolean;
-
+  error: string | null;
+  clearError: () => void;
   fadeAnim: Animated.Value;
   slideAnim: Animated.Value;
   submitScale: Animated.Value;
@@ -49,14 +39,14 @@ export interface ReportStore {
 }
 
 export function useReportStore(): ReportStore {
-  // ── Form state ──────────────────────────────
   const [selectedCategory, setSelectedCategoryRaw] =
     useState<EmergencyType | null>(null);
   const [priority, setPriority] = useState<ReportPriority | null>(null);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
-
+  const [error, setError] = useState<string | null>(null);
+  const clearError = () => setError(null);
   const setSelectedCategory = (category: EmergencyType) => {
     setSelectedCategoryRaw(category);
     const match = CATEGORIES.find(
@@ -64,22 +54,41 @@ export function useReportStore(): ReportStore {
     );
     setPriority(match?.priority ?? null);
   };
-
   const [locationLoading, setLocationLoading] = useState(false);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const submitScale = useRef(new Animated.Value(1)).current;
-
   const handleGetLocation = async () => {
     setLocationLoading(true);
+    clearError();
     try {
-      const loc = await fakeGetLocation();
-      setLocation(loc);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setError("تعذر الوصول إلى الموقع. تحقق من صلاحيات التطبيق.");
+        return;
+      }
+      const coords = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      const [address] = await Location.reverseGeocodeAsync({
+        latitude: coords.coords.latitude,
+        longitude: coords.coords.longitude,
+      });
+
+      const displayAddress = [
+        address.street,
+        address.district,
+        address.city,
+        address.region,
+      ]
+        .filter(Boolean)
+        .join("، ");
+
+      setLocation(displayAddress || "موقع غير معروف");
     } catch {
-      Alert.alert("خطأ", "تعذر الوصول إلى الموقع. تحقق من صلاحيات التطبيق.");
+      setError("تعذر الوصول إلى الموقع. تحقق من اتصالك بالإنترنت.");
     } finally {
       setLocationLoading(false);
     }
@@ -87,11 +96,44 @@ export function useReportStore(): ReportStore {
 
   const handlePickMedia = async () => {
     setMediaLoading(true);
+    clearError();
     try {
-      const file = await fakePickMedia();
-      setMediaFile(file);
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        setError("لا يوجد صلاحية للوصول إلى مكتبة الصور. تحقق من الإعدادات.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        setError("يجب تسجيل الدخول أولاً لرفع الملفات.");
+        return;
+      }
+      const timestamp = Date.now();
+      const fileName = asset.fileName ?? `photo_${timestamp}.jpg`;
+      const storagePath = `report-media/${uid}/${timestamp}_${fileName}`;
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      setMediaFile({
+        name: fileName,
+        type: "image",
+        url: downloadURL,
+      });
     } catch {
-      Alert.alert("خطأ", "فشل تحميل الملف.");
+      setError("فشل رفع الملف. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
     } finally {
       setMediaLoading(false);
     }
@@ -117,13 +159,15 @@ export function useReportStore(): ReportStore {
     ]).start();
 
     setSubmitting(true);
+    clearError();
     try {
       await submitReport({
-        userId: "USER-123",
+        userId: auth.currentUser?.uid ?? "unknown",
         type: selectedCategory,
         description: description.trim() || "لا يوجد وصف",
         location: location ?? "غير محدد",
-        priority: priority ?? undefined,
+        ...(priority && { priority }),
+        ...(mediaFile?.url && { imageUrl: mediaFile.url }),
       });
 
       Alert.alert(
@@ -132,7 +176,7 @@ export function useReportStore(): ReportStore {
         [{ text: "حسناً", onPress: () => router.back() }],
       );
     } catch {
-      Alert.alert("خطأ", "فشل إرسال البلاغ. يرجى المحاولة مرة أخرى.");
+      setError("فشل إرسال البلاغ. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
     } finally {
       setSubmitting(false);
     }
@@ -147,6 +191,8 @@ export function useReportStore(): ReportStore {
     locationLoading,
     mediaLoading,
     submitting,
+    error,
+    clearError,
     fadeAnim,
     slideAnim,
     submitScale,

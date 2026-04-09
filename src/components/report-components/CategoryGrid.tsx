@@ -93,7 +93,6 @@ export default function CategoryGrid({ selectedCategory, onSelect }: Props) {
             activeOpacity={0.75}
             onPress={() => onSelect(cat.type)}
           >
-            {/* Icon circle — filled with category color when active */}
             <View
               style={[
                 styles.iconWrapper,
