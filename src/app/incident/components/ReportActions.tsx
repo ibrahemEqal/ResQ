@@ -1,8 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { styles } from '../styles';
-import { db } from './firebaseConfig';
-
 
 type ReportActionsProps = {
   onAssignResponder: () => void;
