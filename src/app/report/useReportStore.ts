@@ -6,7 +6,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
 
-import { CATEGORIES } from "../../components/report-components/CategoryGrid";
+import { CATEGORIES } from "@/app/ـcomponents/report-components/CategoryGrid";
 import { submitReport } from "../../services/reportService";
 import { EmergencyType, ReportPriority } from "../../types";
 

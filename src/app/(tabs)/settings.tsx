@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from '../../constants/colors';
+import { COLORS } from '@/constants/colors';
 const MOCK_USER = {
   fullName: "أحمد شنطي",
   email: "ahmad.shanti@najah.edu",

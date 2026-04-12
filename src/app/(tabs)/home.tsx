@@ -9,41 +9,50 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert 
+  Alert
 } from "react-native";
-import { COLORS } from "../../constants/colors";
+import { COLORS } from "@/constants/colors";
 
-import { auth, db } from "../../config/firebaseConfig";
+import { auth, db } from "@/config/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-import { signOut } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 
 export default function Home() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("جاري التحميل...");
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
         try {
-          const docRef = doc(db, "users", currentUser.uid);
+          const docRef = doc(db, "users", user.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setUserRole(docSnap.data().role);
+            const data = docSnap.data();
+            setUserRole(data.role);
+            setUserName(data.fullName || "مستخدم");
+          } else {
+            setUserName("مستخدم");
           }
         } catch (error) {
-          console.error("Error fetching user role:", error);
+          console.error("Error fetching user data:", error);
+          setUserName("مستخدم");
         }
+      } else {
+        setUserName("زائر");
+        setUserRole(null);
       }
-    };
+    });
 
-    fetchUserRole();
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     try {
-      await signOut(auth); 
-      router.replace('./login'); 
+      await signOut(auth);
+      router.replace('/auth/login');
     } catch (error) {
       Alert.alert("خطأ", "حدثت مشكلة أثناء تسجيل الخروج");
       console.error(error);
@@ -57,13 +66,13 @@ export default function Home() {
           toValue: 1.15,
           duration: 1000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]),
     ).start();
@@ -72,11 +81,10 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header - Floating Style */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>صباح الخير،</Text>
-            <Text style={styles.userName}>أحمد شنطي</Text>
+            <Text style={styles.userName}>{userName}</Text>
             <View style={styles.locationBadge}>
               <Ionicons name="location" size={12} color={COLORS.secondary} />
               <Text style={styles.locationText}>جامعة النجاح الوطنية</Text>
@@ -93,7 +101,7 @@ export default function Home() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.profileAvatar, { backgroundColor: '#FFEBEE' }]} 
+              style={[styles.profileAvatar, { backgroundColor: '#FFEBEE' }]}
               onPress={handleLogout}
               activeOpacity={0.7}
             >
@@ -102,7 +110,6 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Animated SOS Button Section */}
         <View style={styles.sosContainer}>
           <Animated.View
             style={[
@@ -180,7 +187,6 @@ export default function Home() {
             </TouchableOpacity>
           )}
 
-          {/* Card 3: Alerts */}
           <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8}>
             <View style={styles.cardHeader}>
               <View
@@ -194,8 +200,11 @@ export default function Home() {
             <Text style={styles.cardDesc}>لا توجد أخطار</Text>
           </TouchableOpacity>
 
-          {/* Card 4: History */}
-          <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.premiumCard}
+            activeOpacity={0.8}
+            onPress={() => router.push("/my-report-history")}
+          >
             <View style={styles.cardHeader}>
               <View
                 style={[styles.iconWrapper, { backgroundColor: "#FFEBEE" }]}

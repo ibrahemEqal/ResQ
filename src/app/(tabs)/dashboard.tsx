@@ -1,12 +1,12 @@
-import React, { useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Easing, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import React, { useRef } from 'react';
+import { Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { StatBox } from '@/app/ـcomponents/StatBox';
 import { useDashboard } from '../incident/hooks/useDashboard';
-import { StatBox } from '../incident/components/StatBox';
 
 export default function Dashboard() {
   const { stats, recentLogs } = useDashboard();
