@@ -1,4 +1,4 @@
-//MyReportHistory
+// MyReportHistory
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -22,12 +22,6 @@ import { getUserLocally } from "../services/authService";
 import { getReportsByUser } from "../services/reportService";
 import { Report, ReportStatus } from "../types";
 
-function sortByNewest(list: Report[]): Report[] {
-  return [...list].sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-}
-
 export default function ReportsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -38,44 +32,44 @@ export default function ReportsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [userId, setUserId] = useState<string | null>(null);
-
   const loadUser = useCallback(async () => {
     const user = await getUserLocally();
     if (!user?.uid) {
       setError("يجب تسجيل الدخول أولاً");
       return null;
     }
-    setUserId(user.uid);
     return user.uid;
   }, []);
 
   const loadReports = useCallback(async () => {
-    const uid = await loadUser();
-    if (!uid) return;
-
-    setError(null);
     try {
+      const uid = await loadUser();
+      if (!uid) return;
+
+      setError(null);
+
       const data = await getReportsByUser(uid);
 
       const myReports = data.filter((r) => r.userId === uid);
 
-      setReports(sortByNewest(myReports));
-    } catch {
+      setReports(myReports);
+    } catch (e) {
       setError("تعذّر تحميل البلاغات");
     }
   }, [loadUser]);
 
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
+      let active = true;
+
       (async () => {
         setLoading(true);
         await loadReports();
-        if (!cancelled) setLoading(false);
+        if (active) setLoading(false);
       })();
+
       return () => {
-        cancelled = true;
+        active = false;
       };
     }, [loadReports]),
   );
@@ -93,8 +87,12 @@ export default function ReportsScreen() {
   }, [reports, filter]);
 
   const handleDelete = async (id: string) => {
-    await deleteDoc(doc(db, "reports", id));
-    setReports((prev) => prev.filter((r) => r.id !== id));
+    try {
+      await deleteDoc(doc(db, "reports", id));
+      setReports((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      console.log("Delete error:", e);
+    }
   };
 
   useLayoutEffect(() => {
@@ -119,7 +117,7 @@ export default function ReportsScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text>{error}</Text>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -128,20 +126,25 @@ export default function ReportsScreen() {
     <FlatList
       data={filteredReports}
       keyExtractor={(item) => item.id}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
       renderItem={({ item }) => (
         <ReportCard report={item} onDelete={handleDelete} />
       )}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      contentContainerStyle={[
+        styles.listContainer,
+        filteredReports.length === 0 && { flex: 1 },
+      ]}
       ListHeaderComponent={
-        <View>
-          <Text style={styles.count}>{reports.length} بلاغ خاص بك</Text>
+        <View style={styles.header}>
           <Filters filter={filter} setFilter={setFilter} />
         </View>
       }
       ListEmptyComponent={
-        <Text style={styles.empty}>لا يوجد بلاغات خاصة بك</Text>
+        <View style={styles.centered}>
+          <Text style={styles.empty}>لا يوجد بلاغات خاصة بك</Text>
+        </View>
       }
     />
   );
@@ -153,14 +156,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
+  listContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 30,
+  },
+
+  header: {
+    marginBottom: 10,
+  },
+
   count: {
     textAlign: "right",
-    margin: 10,
+    marginBottom: 10,
     fontWeight: "600",
   },
+
   empty: {
     textAlign: "center",
-    marginTop: 20,
     color: "#999",
+    marginTop: 20,
+  },
+
+  errorText: {
+    color: "red",
   },
 });
