@@ -11,9 +11,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from "../constants/colors";
+import { COLORS } from "../../constants/colors"
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { auth } from "../config/firebaseConfig";
+import { auth } from "../../config/firebaseConfig";
 
 const APP_VERSION = "1.0.0";
 

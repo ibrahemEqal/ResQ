@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { COLORS } from "../constants/colors";
+import { COLORS } from "../constants/colors"; 
 
 export default function RootLayout() {
   return (
@@ -12,14 +12,15 @@ export default function RootLayout() {
       }}
     >
       <Stack.Screen
-        name="home"
-        options={{ title: "الرئيسية", headerShown: false }}
+        name="(tabs)"
+        options={{ headerShown: false }}
       />
-      <Stack.Screen name="tips" options={{ title: "نصائح الطوارئ" }} />
-      <Stack.Screen name="dashboard" options={{ title: "لوحة التحكم" }} />
+
       <Stack.Screen name="report" options={{ title: "إبلاغ عن طارئ" }} />
-      <Stack.Screen name="settings" options={{ title: "الإعدادات" }} />
-      <Stack.Screen name="incident/[id]" options={{ title: "تفاصيل البلاغ " }} />
+      <Stack.Screen name="incident/[id]" options={{ title: "تفاصيل البلاغ" }} />
+
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="signup" options={{ title: "إنشاء حساب", headerShown: false }} />
     </Stack>
   );
 }

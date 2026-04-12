@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -9,11 +9,46 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert 
 } from "react-native";
-import { COLORS } from "../constants/colors";
+import { COLORS } from "../../constants/colors";
+
+import { auth, db } from "../../config/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 
 export default function Home() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        try {
+          const docRef = doc(db, "users", currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setUserRole(docSnap.data().role);
+          }
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); 
+      router.replace('./login'); 
+    } catch (error) {
+      Alert.alert("خطأ", "حدثت مشكلة أثناء تسجيل الخروج");
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
     Animated.loop(
@@ -47,13 +82,24 @@ export default function Home() {
               <Text style={styles.locationText}>جامعة النجاح الوطنية</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.profileAvatar}
-            onPress={() => router.push("./settings")}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="person" size={24} color={COLORS.primary} />
-          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity
+              style={styles.profileAvatar}
+              onPress={() => router.push("./settings")}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.profileAvatar, { backgroundColor: '#FFEBEE' }]} 
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="log-out-outline" size={24} color="#C62828" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Animated SOS Button Section */}
@@ -74,8 +120,8 @@ export default function Home() {
           <TouchableOpacity
             style={styles.sosButton}
             activeOpacity={0.8}
-            onLongPress={() => router.push('/report')} 
-            delayLongPress={800} 
+            onLongPress={() => router.push('/report')}
+            delayLongPress={800}
           >
             <Ionicons name="warning" size={48} color={COLORS.surface} />
             <Text style={styles.sosText}>SOS</Text>
@@ -86,7 +132,6 @@ export default function Home() {
           </Text>
         </View>
 
-        {/* Premium Quick Actions Grid */}
         <View style={styles.grid}>
           {/* Card 1: Tips */}
           <TouchableOpacity
@@ -111,28 +156,29 @@ export default function Home() {
             <Text style={styles.cardDesc}>كيف تتصرف؟</Text>
           </TouchableOpacity>
 
-          {/* Card 2: Dashboard */}
-          <TouchableOpacity
-            style={styles.premiumCard}
-            onPress={() => router.push("/dashboard")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.cardHeader}>
-              <View
-                style={[styles.iconWrapper, { backgroundColor: "#E3F2FD" }]}
-              >
-                <Ionicons name="stats-chart" size={24} color="#1565C0" />
+          {(userRole === 'security' || userRole === 'admin') && (
+            <TouchableOpacity
+              style={styles.premiumCard}
+              onPress={() => router.push("/(tabs)/dashboard")}
+              activeOpacity={0.8}
+            >
+              <View style={styles.cardHeader}>
+                <View
+                  style={[styles.iconWrapper, { backgroundColor: "#E3F2FD" }]}
+                >
+                  <Ionicons name="stats-chart" size={24} color="#1565C0" />
+                </View>
+                <Ionicons
+                  name="chevron-back"
+                  size={20}
+                  color={COLORS.textSecondary}
+                  style={{ opacity: 0.5 }}
+                />
               </View>
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={COLORS.textSecondary}
-                style={{ opacity: 0.5 }}
-              />
-            </View>
-            <Text style={styles.cardTitle}>المتابعة</Text>
-            <Text style={styles.cardDesc}>لوحة التحكم</Text>
-          </TouchableOpacity>
+              <Text style={styles.cardTitle}>المتابعة</Text>
+              <Text style={styles.cardDesc}>لوحة التحكم</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Card 3: Alerts */}
           <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8}>
@@ -165,7 +211,6 @@ export default function Home() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F9FA" },
   container: {
