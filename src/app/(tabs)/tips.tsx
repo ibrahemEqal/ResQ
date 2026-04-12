@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { MOCK_TIPS } from '../data/mockData';
-
+import { MOCK_TIPS } from '../../data/mockData';
 const { width } = Dimensions.get('window');
 
 const CATEGORIES = ['الكل', 'Fire', 'Fainting', 'Security', 'Electrical'];

@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { View, Text,TouchableOpacity,StyleSheet,Alert, ScrollView,KeyboardAvoidingView,Platform} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RFValue } from 'react-native-responsive-fontsize';
-import CustomInput from '../components/CustomInput';
-import { COLORS } from '../constants/colors';
-import { Theme } from '../constants/theme';
+import CustomInput from '../../components/CustomInput';
+import { COLORS } from '../../constants/colors';
+import { Theme } from '../../constants/theme';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import {doc,setDoc} from 'firebase/firestore';
-import {auth,db} from '../config/firebaseConfig';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../../config/firebaseConfig';
 import { router } from 'expo-router';
 
 
