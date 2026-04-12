@@ -1,4 +1,5 @@
-import { COLORS } from '../constants/colors'; export const Theme = {
+import { COLORS } from "../constants/colors";
+export const Theme = {
   colors: COLORS,
   spacing: {
     xs: 4,
@@ -13,3 +14,5 @@ import { COLORS } from '../constants/colors'; export const Theme = {
     lg: 20,
   },
 };
+
+export const Spacing = Theme.spacing;

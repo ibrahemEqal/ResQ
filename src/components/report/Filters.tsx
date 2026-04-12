@@ -1,7 +1,7 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { ReportStatus } from "../../types";
 import { COLORS } from "@/constants/colors";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ReportStatus } from "../../types";
 
 type Props = {
   filter: ReportStatus | "All";
@@ -56,7 +56,7 @@ export default function Filters({ filter, setFilter }: Props) {
 const styles = StyleSheet.create({
   filters: {
     flexDirection: "row-reverse",
-    marginBottom: 16,
+    margin: 16,
   },
   btn: {
     flexDirection: "row",

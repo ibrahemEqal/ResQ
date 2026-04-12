@@ -1,120 +1,166 @@
-import React, { useState, useEffect, useMemo } from "react";
+//MyReportHistory
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
   ActivityIndicator,
-  StyleSheet,
   FlatList,
-  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import { Report, ReportStatus } from "../types";
-import { getReportsByUser } from "../services/reportService";
-
+import { deleteDoc, doc } from "firebase/firestore";
 import Filters from "../components/report/Filters";
 import ReportCard from "../components/report/ReportCard";
+import { db } from "../config/firebaseConfig";
+import { COLORS } from "../constants/colors";
+import { getUserLocally } from "../services/authService";
+import { getReportsByUser } from "../services/reportService";
+import { Report, ReportStatus } from "../types";
 
-//  مؤقت (بدل auth)
-const CURRENT_USER_ID = "USER-123";
+function sortByNewest(list: Report[]): Report[] {
+  return [...list].sort((a, b) => {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
 
-export default function MyReportHistory() {
+export default function ReportsScreen() {
+  const router = useRouter();
+  const navigation = useNavigation();
+
   const [reports, setReports] = useState<Report[]>([]);
   const [filter, setFilter] = useState<ReportStatus | "All">("All");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchReports = async () => {
-    try {
-      const data = await getReportsByUser(CURRENT_USER_ID);
-      setReports(data);
-      setError(null);
-    } catch {
-      setError("فشل في جلب التقارير");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchReports();
+  const loadUser = useCallback(async () => {
+    const user = await getUserLocally();
+    if (!user?.uid) {
+      setError("يجب تسجيل الدخول أولاً");
+      return null;
+    }
+    setUserId(user.uid);
+    return user.uid;
   }, []);
 
+  const loadReports = useCallback(async () => {
+    const uid = await loadUser();
+    if (!uid) return;
+
+    setError(null);
+    try {
+      const data = await getReportsByUser(uid);
+
+      const myReports = data.filter((r) => r.userId === uid);
+
+      setReports(sortByNewest(myReports));
+    } catch {
+      setError("تعذّر تحميل البلاغات");
+    }
+  }, [loadUser]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        setLoading(true);
+        await loadReports();
+        if (!cancelled) setLoading(false);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [loadReports]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadReports();
+    setRefreshing(false);
+  }, [loadReports]);
+
   const filteredReports = useMemo(() => {
-    return reports
-      .filter((r) => (filter === "All" ? true : r.status === filter))
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
-      );
+    return reports.filter((r) =>
+      filter === "All" ? true : r.status === filter,
+    );
   }, [reports, filter]);
 
-  if (loading) {
+  const handleDelete = async (id: string) => {
+    await deleteDoc(doc(db, "reports", id));
+    setReports((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => router.push("/report")}>
+          <Ionicons name="add-circle" size={28} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, router]);
+
+  if (loading && !refreshing) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text>جاري التحميل...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.error}>{error}</Text>
+      <View style={styles.centered}>
+        <Text>{error}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-    
-
-      <Filters filter={filter} setFilter={setFilter} />
-
-      {filteredReports.length === 0 ? (
-        <Text style={styles.empty}>لا يوجد بلاغات</Text>
-      ) : (
-        <FlatList
-          data={filteredReports}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ReportCard report={item} />}
-          showsVerticalScrollIndicator={false}
-        />
+    <FlatList
+      data={filteredReports}
+      keyExtractor={(item) => item.id}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      renderItem={({ item }) => (
+        <ReportCard report={item} onDelete={handleDelete} />
       )}
-    </ScrollView>
+      ListHeaderComponent={
+        <View>
+          <Text style={styles.count}>{reports.length} بلاغ خاص بك</Text>
+          <Filters filter={filter} setFilter={setFilter} />
+        </View>
+      }
+      ListEmptyComponent={
+        <Text style={styles.empty}>لا يوجد بلاغات خاصة بك</Text>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: "#f3f4f6",
-    width: "100%",
-    maxWidth: 450,
-    alignSelf: "center",
-  },
-
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-
-  center: {
+  centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-
-  error: {
-    color: "red",
-    fontSize: 16,
+  count: {
+    textAlign: "right",
+    margin: 10,
+    fontWeight: "600",
   },
-
   empty: {
     textAlign: "center",
-    color: "#9ca3af",
     marginTop: 20,
+    color: "#999",
   },
 });

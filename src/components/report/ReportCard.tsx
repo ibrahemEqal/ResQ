@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useRef } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Alert,
   Animated,
   Pressable,
-  Alert,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { Report } from "../../types";
@@ -19,6 +20,7 @@ export default function ReportCard({
   onDelete?: (id: string) => void;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const router = useRouter();
 
   const handlePressIn = () => {
     Animated.spring(scale, {
@@ -33,20 +35,21 @@ export default function ReportCard({
       useNativeDriver: true,
     }).start();
   };
+
   const getStatusText = (status: string) => {
-  switch (status) {
-    case "Open":
-      return "مفتوح";
-    case "In Progress":
-      return "قيد المعالجة";
-    case "Resolved":
-      return "مكتمل";
-    case "Critical":
-      return "حرج";
-    default:
-      return status;
-  }
-};
+    switch (status) {
+      case "Open":
+        return "مفتوح";
+      case "In Progress":
+        return "قيد المعالجة";
+      case "Resolved":
+        return "مكتمل";
+      case "Critical":
+        return "حرج";
+      default:
+        return status;
+    }
+  };
 
   const handleDelete = () => {
     Alert.alert("تأكيد الحذف", "هل أنت متأكد من حذف البلاغ؟", [
@@ -67,12 +70,10 @@ export default function ReportCard({
   );
 
   return (
-    <Swipeable
-      renderLeftActions={renderLeftActions}
-      overshootLeft={false}
-    >
+    <Swipeable renderLeftActions={renderLeftActions} overshootLeft={false}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable
+          onPress={() => router.push(`/incident/${report.id}`)}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           style={styles.card}
@@ -89,7 +90,7 @@ export default function ReportCard({
                   <Ionicons
                     name="alert-circle-outline"
                     size={18}
-                    color="#C62828" 
+                    color="#C62828"
                   />
                 </View>
 
@@ -98,8 +99,13 @@ export default function ReportCard({
                 </Text>
               </View>
 
-              <Text style={[styles.status, { backgroundColor: "#FFEBEE", color: "#C62828" }]}>
-              {getStatusText(report.status)}
+              <Text
+                style={[
+                  styles.status,
+                  { backgroundColor: "#FFEBEE", color: "#C62828" },
+                ]}
+              >
+                {getStatusText(report.status)}
               </Text>
             </View>
 
@@ -123,8 +129,6 @@ export default function ReportCard({
   );
 }
 
-/* Styles */
-
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row-reverse",
@@ -137,29 +141,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     elevation: 3,
   },
-
   sideBar: {
     width: 5,
     borderTopRightRadius: 18,
     borderBottomRightRadius: 18,
   },
-
   content: {
     flex: 1,
     padding: 14,
   },
-
   header: {
     flexDirection: "row-reverse",
     justifyContent: "space-between",
     marginBottom: 10,
   },
-
   typeContainer: {
     flexDirection: "row-reverse",
     alignItems: "center",
   },
-
   iconContainer: {
     width: 34,
     height: 34,
@@ -168,12 +167,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 8,
   },
-
   title: {
     fontSize: 16,
     fontWeight: "800",
   },
-
   status: {
     fontSize: 11,
     paddingVertical: 4,
@@ -181,19 +178,16 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     fontWeight: "700",
   },
-
   row: {
     flexDirection: "row-reverse",
     alignItems: "center",
     marginTop: 4,
   },
-
   text: {
     marginRight: 6,
     fontSize: 13,
     color: "#6B7280",
   },
-
   deleteButton: {
     backgroundColor: "#FF3B30",
     justifyContent: "center",
@@ -202,7 +196,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginBottom: 14,
   },
-
   deleteText: {
     color: "#fff",
     fontSize: 12,

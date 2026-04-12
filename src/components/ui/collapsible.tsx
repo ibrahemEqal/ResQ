@@ -1,10 +1,11 @@
-import { SymbolView } from 'expo-symbols';
-import { PropsWithChildren, useState } from 'react';
-import { Pressable, StyleSheet, View, Text } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { SymbolView } from "expo-symbols";
+import { PropsWithChildren, useState } from "react";
+import { Pressable, StyleSheet } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
-import { useTheme } from '@/hooks/use-theme';
-import { Theme } from '@/constants/theme';
+import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+import { ThemedText, ThemedView } from "expo-router/ui";
 
 export function Collapsible({
   children,
@@ -22,19 +23,17 @@ export function Collapsible({
         ]}
         onPress={() => setIsOpen((value) => !value)}
       >
-        <View style={styles.button}>
+        <ThemedView type="backgroundElement" style={styles.button}>
           <SymbolView
             name={{
-              ios: 'chevron.right',
-              android: 'chevron_right',
-              web: 'chevron_right',
+              ios: "chevron.right",
+              android: "chevron_right",
+              web: "chevron_right",
             }}
             size={14}
             weight="bold"
             tintColor={theme.text}
-            style={{
-              transform: [{ rotate: isOpen ? '-90deg' : '90deg' }],
-            }}
+            style={{ transform: [{ rotate: isOpen ? "-90deg" : "90deg" }] }}
           />
         </View>
 
@@ -52,9 +51,9 @@ export function Collapsible({
 
 const styles = StyleSheet.create({
   heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.two,
   },
   pressedHeading: {
     opacity: 0.7,
@@ -63,8 +62,8 @@ const styles = StyleSheet.create({
     width: Theme.spacing.md,
     height: Theme.spacing.md,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     marginTop: Theme.spacing.sm,

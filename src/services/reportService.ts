@@ -1,46 +1,58 @@
-import { Report } from '../types';
-import { fetchMockReports, createMockReport } from '../data/mockData';
-import { db } from './firebaseConfig';
-import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
-const USE_MOCK_DATA = true;
+import { db } from "@/config/firebaseConfig";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { Report } from "../types";
 
-export const getReports = async (): Promise<Report[]> => {
-    if (USE_MOCK_DATA) {
-        return await fetchMockReports();
-    } else {
-        const querySnapshot = await getDocs(collection(db, 'reports'));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
-    }
+const REPORTS_COLLECTION = "reports";
+
+export const submitReport = async (
+  reportData: Omit<Report, "id" | "createdAt" | "status">,
+) => {
+  try {
+    const newReport = {
+      ...reportData,
+      status: "Open",
+      createdAt: new Date().toISOString(),
+    };
+
+    const docRef = await addDoc(collection(db, REPORTS_COLLECTION), newReport);
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error("Error adding report: ", error);
+    return { success: false, error };
+  }
 };
-export const getReportsByUser = async (userId: string): Promise<Report[]> => {
-    if (USE_MOCK_DATA) {
-        const allReports = await fetchMockReports();
-        return allReports.filter(report => report.userId === userId);
-    } else {
-        const q = query(
-            collection(db, 'reports'),
-            where('userId', '==', userId)
-        );
 
-        const querySnapshot = await getDocs(q);
+export const getReportsByUser = async (uid: string): Promise<Report[]> => {
+  const q = query(collection(db, "reports"), where("userId", "==", uid));
 
-        return querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        })) as Report[];
-    }
+  const snap = await getDocs(q);
+
+  return snap.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Report, "id">),
+  }));
 };
 
+export const getReportById = async (id: string): Promise<Report | null> => {
+  try {
+    const docRef = doc(db, REPORTS_COLLECTION, id);
+    const docSnap = await getDoc(docRef);
 
-export const submitReport = async (reportData: Omit<Report, 'id' | 'createdAt' | 'status'>) => {
-    if (USE_MOCK_DATA) {
-        return await createMockReport(reportData);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Report;
     } else {
-        const docRef = await addDoc(collection(db, 'reports'), {
-            ...reportData,
-            status: 'Open',
-            createdAt: serverTimestamp(),
-        });
-        return docRef.id;
+      return null;
     }
+  } catch (error) {
+    console.error("Error getting report details: ", error);
+    return null;
+  }
 };
