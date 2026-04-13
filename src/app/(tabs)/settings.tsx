@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -11,9 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from "../../constants/colors"
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "../../config/firebaseConfig";
+import { COLORS } from "../../constants/colors";
 
 const APP_VERSION = "1.0.0";
 
