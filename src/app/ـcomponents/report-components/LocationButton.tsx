@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
 } from "react-native";
-import { COLORS } from "../../constants/colors";
+import { COLORS } from "@/constants/colors";
 
 interface Props {
   location: string | null;

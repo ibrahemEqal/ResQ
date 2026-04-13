@@ -1,3 +1,7 @@
+import CustomInput from "@/app/ـcomponents/CustomInput";
+import { auth, db } from "@/config/firebaseConfig";
+import { COLORS } from "@/constants/colors";
+import { Theme } from "@/constants/theme";
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -14,10 +18,6 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CustomInput from "../components/CustomInput";
-import { auth, db } from "../config/firebaseConfig";
-import { COLORS } from "../constants/colors";
-import { Theme } from "../constants/theme";
 
 export default function SignupScreen() {
   const [fullName, setFullName] = useState("");

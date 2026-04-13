@@ -11,8 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from "../constants/colors";
-
+import { COLORS } from '@/constants/colors';
 const MOCK_USER = {
   fullName: "أحمد شنطي",
   email: "ahmad.shanti@najah.edu",
@@ -34,7 +33,7 @@ export default function Settings() {
       {
         text: "خروج",
         style: "destructive",
-        onPress: () => router.replace("/login"),
+        onPress: () => router.replace("./login"),
       },
     ]);
   };

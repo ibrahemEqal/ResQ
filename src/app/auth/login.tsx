@@ -1,3 +1,7 @@
+import CustomInput from "@/app/ـcomponents/CustomInput";
+import { auth, db } from "@/config/firebaseConfig";
+import { COLORS } from "@/constants/colors";
+import { Theme } from "@/constants/theme";
 import { router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -15,12 +19,6 @@ import {
 import { RFValue } from "react-native-responsive-fontsize";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import CustomInput from "../components/CustomInput";
-import { auth, db } from "../config/firebaseConfig";
-import { COLORS } from "../constants/colors";
-import { Theme } from "../constants/theme";
-import { saveUserLocally, type StoredUser } from "../services/authService";
-
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,10 +29,12 @@ export default function LoginScreen() {
     password: "",
   });
 
-  /* ===================== VALIDATION ===================== */
   const validate = () => {
     let valid = true;
-    const newErrors = { email: "", password: "" };
+    const newErrors = {
+      email: "",
+      password: "",
+    };
 
     if (!email.trim()) {
       newErrors.email = "Email is required";
@@ -50,65 +50,50 @@ export default function LoginScreen() {
     return valid;
   };
 
-  /* ===================== LOGIN ===================== */
   const handleLogin = async () => {
-    if (!validate()) return;
+    if (validate()) {
+      setLoading(true);
 
-    setLoading(true);
+      try {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password,
+        );
+        const userUid = userCredential.user.uid;
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
+        const userDocRef = doc(db, "users", userUid);
+        const userDocSnap = await getDoc(userDocRef);
 
-      const userUid = userCredential.user.uid;
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
 
-      const userDocRef = doc(db, "users", userUid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (userDocSnap.exists()) {
-        const fromDb = userDocSnap.data() as StoredUser;
-
-        const userData: StoredUser = {
-          ...fromDb,
-          uid: userUid,
-          email: fromDb.email ?? userCredential.user.email ?? email,
-        };
-        await saveUserLocally(userData);
-
-        if (userData.role === "security" || userData.role === "admin") {
-          router.replace("/dashboard");
+          if (userData.role === "security" || userData.role === "admin") {
+            router.replace("/(tabs)/dashboard");
+          } else {
+            router.replace("/home");
+          }
         } else {
           router.replace("/home");
         }
-      } else {
-        await saveUserLocally({
-          uid: userUid,
-          email: userCredential.user.email ?? email,
-          role: "student",
-        });
-        router.replace("/home");
+      } catch (error: any) {
+        if (
+          error.code === "auth/user-not-found" ||
+          error.code === "auth/wrong-password" ||
+          error.code === "auth/invalid-credential"
+        ) {
+          Alert.alert("خطأ", "البريد الإلكتروني أو كلمة المرور غير صحيحة");
+        } else if (error.code === "auth/invalid-email") {
+          Alert.alert("خطأ", "صيغة البريد الإلكتروني غير صحيحة");
+        } else {
+          Alert.alert("حدث خطأ", error.message);
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password" ||
-        error.code === "auth/invalid-credential"
-      ) {
-        Alert.alert("خطأ", "البريد الإلكتروني أو كلمة المرور غير صحيحة");
-      } else if (error.code === "auth/invalid-email") {
-        Alert.alert("خطأ", "صيغة البريد الإلكتروني غير صحيحة");
-      } else {
-        Alert.alert("حدث خطأ", error.message);
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
-  /* ===================== UI ===================== */
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -143,16 +128,14 @@ export default function LoginScreen() {
               />
 
               <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                <Text style={styles.buttonText}>
-                  {loading ? "Loading..." : "Login"}
-                </Text>
+                <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
               <TouchableOpacity>
                 <Text style={styles.link}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push("/signup")}>
+              <TouchableOpacity onPress={() => router.push("./signup")}>
                 <Text style={styles.signupLink}>
                   Don’t have an account? Sign Up
                 </Text>
@@ -165,7 +148,6 @@ export default function LoginScreen() {
   );
 }
 
-/* ===================== STYLES ===================== */
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { styles } from '../styles';
+import { styles } from '@/app/incident/styles';
 
 type ReportActionsProps = {
   onAssignResponder: () => void;

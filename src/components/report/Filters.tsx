@@ -56,7 +56,7 @@ export default function Filters({ filter, setFilter }: Props) {
 const styles = StyleSheet.create({
   filters: {
     flexDirection: "row-reverse",
-    margin: 16,
+    marginBottom: 12,
   },
   btn: {
     flexDirection: "row",
