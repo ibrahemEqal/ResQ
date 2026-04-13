@@ -1,10 +1,3 @@
-/**
- * components/ReportList.tsx
- * --------------------------
- * FlatList wrapper that renders a list of ReportCard components.
- * Owns pull-to-refresh and empty state — nothing else.
- */
-
 import { COLORS } from '@/constants/colors';
 import { Report } from '@/types';
 import React from 'react';
@@ -16,39 +9,37 @@ import {
   View,
 } from 'react-native';
 import { ReportCard } from './ReportCard';
-
 interface ReportListProps {
   reports: Report[];
   refreshing: boolean;
   onRefresh: () => void;
-  /** ID of the currently expanded card (null = none expanded) */
   expandedId: string | null;
   onCardPress: (id: string) => void;
+  onResolve: (id: string) => void;
 }
-
 export function ReportList({
   reports,
   refreshing,
   onRefresh,
   expandedId,
   onCardPress,
+  onResolve,
 }: ReportListProps) {
   return (
     <FlatList
+      style={{ flex: 1 }}
       data={reports}
       keyExtractor={(item) => item.id}
-      // Render each report as an expandable card
       renderItem={({ item }) => (
         <ReportCard
           report={item}
           isExpanded={item.id === expandedId}
-          // Toggle: pressing an already-expanded card collapses it
           onPress={() => onCardPress(item.id === expandedId ? '' : item.id)}
+          onResolve={() => onResolve(item.id)}
         />
       )}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
-      // Native pull-to-refresh
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -57,13 +48,10 @@ export function ReportList({
           tintColor={COLORS.primary}
         />
       }
-      // Shown when no reports match the current search/filter combination
       ListEmptyComponent={<EmptyState />}
     />
   );
 }
-
-// ─── Empty state sub-component (private to this file) ────────────────────────
 function EmptyState() {
   return (
     <View style={styles.emptyContainer}>
@@ -73,7 +61,6 @@ function EmptyState() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   listContent: {
     padding: 16,

@@ -1,10 +1,4 @@
-/**
- * components/ViewToggle.tsx
- * --------------------------
- * Segmented control that switches between List view and Map view.
- *
- *   [ ☰ القائمة ]  [ 🗺️ الخريطة ]
- */
+
 
 import { COLORS } from '@/constants/colors';
 import React from 'react';
