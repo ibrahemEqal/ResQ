@@ -29,7 +29,7 @@ export default function Settings() {
       if (firebaseUser) {
         setUser(firebaseUser);
       } else {
-        router.replace("/login");
+        router.replace("./login");
       }
     });
     return unsubscribe;
@@ -43,7 +43,7 @@ export default function Settings() {
         style: "destructive",
         onPress: async () => {
           await signOut(auth);
-          router.replace("/login");
+          router.replace("./login");
         },
       },
     ]);
