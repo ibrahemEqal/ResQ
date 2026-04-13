@@ -1,6 +1,5 @@
 import { auth, storage } from "@/config/firebaseConfig";
 import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 import { router } from "expo-router";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useRef, useState } from "react";
@@ -20,9 +19,8 @@ export interface ReportStore {
   selectedCategory: EmergencyType | null;
   priority: ReportPriority | null;
   description: string;
-  location: string | null;
+  selectedCollege: string | null;
   mediaFile: MediaFile | null;
-  locationLoading: boolean;
   mediaLoading: boolean;
   submitting: boolean;
   error: string | null;
@@ -33,7 +31,7 @@ export interface ReportStore {
 
   setSelectedCategory: (category: EmergencyType) => void;
   setDescription: (text: string) => void;
-  handleGetLocation: () => Promise<void>;
+  setSelectedCollege: (college: string) => void;
   handlePickMedia: () => Promise<void>;
   handleSubmit: () => Promise<void>;
 }
@@ -43,55 +41,24 @@ export function useReportStore(): ReportStore {
     useState<EmergencyType | null>(null);
   const [priority, setPriority] = useState<ReportPriority | null>(null);
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState<string | null>(null);
+  const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const submitScale = useRef(new Animated.Value(1)).current;
+
   const clearError = () => setError(null);
+
   const setSelectedCategory = (category: EmergencyType) => {
     setSelectedCategoryRaw(category);
     const match = CATEGORIES.find(
       (c: (typeof CATEGORIES)[number]) => c.type === category,
     );
     setPriority(match?.priority ?? null);
-  };
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
-  const submitScale = useRef(new Animated.Value(1)).current;
-  const handleGetLocation = async () => {
-    setLocationLoading(true);
-    clearError();
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setError("تعذر الوصول إلى الموقع. تحقق من صلاحيات التطبيق.");
-        return;
-      }
-      const coords = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: coords.coords.latitude,
-        longitude: coords.coords.longitude,
-      });
-
-      const displayAddress = [
-        address.street,
-        address.district,
-        address.city,
-        address.region,
-      ]
-        .filter(Boolean)
-        .join("، ");
-
-      setLocation(displayAddress || "موقع غير معروف");
-    } catch {
-      setError("تعذر الوصول إلى الموقع. تحقق من اتصالك بالإنترنت.");
-    } finally {
-      setLocationLoading(false);
-    }
   };
 
   const handlePickMedia = async () => {
@@ -104,6 +71,7 @@ export function useReportStore(): ReportStore {
         setError("لا يوجد صلاحية للوصول إلى مكتبة الصور. تحقق من الإعدادات.");
         return;
       }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
@@ -116,10 +84,12 @@ export function useReportStore(): ReportStore {
       const response = await fetch(asset.uri);
       const blob = await response.blob();
       const uid = auth.currentUser?.uid;
+
       if (!uid) {
         setError("يجب تسجيل الدخول أولاً لرفع الملفات.");
         return;
       }
+
       const timestamp = Date.now();
       const fileName = asset.fileName ?? `photo_${timestamp}.jpg`;
       const storagePath = `report-media/${uid}/${timestamp}_${fileName}`;
@@ -127,11 +97,7 @@ export function useReportStore(): ReportStore {
       await uploadBytes(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
 
-      setMediaFile({
-        name: fileName,
-        type: "image",
-        url: downloadURL,
-      });
+      setMediaFile({ name: fileName, type: "image", url: downloadURL });
     } catch {
       setError("فشل رفع الملف. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
     } finally {
@@ -165,7 +131,7 @@ export function useReportStore(): ReportStore {
         userId: auth.currentUser?.uid ?? "unknown",
         type: selectedCategory,
         description: description.trim() || "لا يوجد وصف",
-        location: location ?? "غير محدد",
+        location: selectedCollege ?? "غير محدد",
         ...(priority && { priority }),
         ...(mediaFile?.url && { imageUrl: mediaFile.url }),
       });
@@ -186,9 +152,8 @@ export function useReportStore(): ReportStore {
     selectedCategory,
     priority,
     description,
-    location,
+    selectedCollege,
     mediaFile,
-    locationLoading,
     mediaLoading,
     submitting,
     error,
@@ -198,7 +163,7 @@ export function useReportStore(): ReportStore {
     submitScale,
     setSelectedCategory,
     setDescription,
-    handleGetLocation,
+    setSelectedCollege,
     handlePickMedia,
     handleSubmit,
   };

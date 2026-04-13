@@ -1,48 +1,127 @@
-import { Ionicons } from "@expo/vector-icons";
-import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-} from "react-native";
 import { COLORS } from "@/constants/colors";
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+const COLLEGES = [
+  "كلية الهندسة وتكنولوجيا المعلومات",
+  "كلية الطب وعلوم الصحة",
+  "كلية الصيدلة",
+  "كلية القانون",
+  "كلية العلوم",
+  "كلية الفنون الجميلة",
+  "كلية الدراسات العليا",
+  "المعهد الكوري",
+  "الساحة البيضاء",
+  "البيتوين",
+  "ساحة النافورة",
+  "المدرج المكشوف",
+  "كلية الرياضة",
+  "المسجد",
+  "النفق"
+];
 
 interface Props {
-  location: string | null;
-  loading: boolean;
-  onPress: () => void;
+  selectedCollege: string | null;
+  onSelect: (college: string) => void;
 }
 
-export default function LocationButton({ location, loading, onPress }: Props) {
-  const isSet = location !== null;
+export default function CollegePicker({ selectedCollege, onSelect }: Props) {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleSelect = (college: string) => {
+    onSelect(college);
+    setModalVisible(false);
+  };
 
   return (
-    <TouchableOpacity
-      style={[styles.btn, isSet && styles.btnActive]}
-      onPress={onPress}
-      disabled={loading}
-      activeOpacity={0.8}
-    >
-      {loading ? (
-        <ActivityIndicator color={COLORS.secondary} size="small" />
-      ) : (
+    <>
+      <TouchableOpacity
+        style={[styles.btn, selectedCollege && styles.btnActive]}
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.8}
+      >
         <Ionicons
-          name={isSet ? "location" : "location-outline"}
+          name={selectedCollege ? "school" : "school-outline"}
           size={26}
-          color={isSet ? COLORS.secondary : COLORS.textSecondary}
+          color={selectedCollege ? COLORS.secondary : COLORS.textSecondary}
         />
-      )}
 
-      <Text style={[styles.label, isSet && styles.labelActive]}>
-        {isSet ? "تم تحديد الموقع" : "إرفاق الموقع"}
-      </Text>
-
-      {isSet && (
-        <Text style={styles.address} numberOfLines={2}>
-          {location}
+        <Text style={[styles.label, selectedCollege && styles.labelActive]}>
+          {selectedCollege ? "الكلية المحددة" : "اختر الكلية"}
         </Text>
-      )}
-    </TouchableOpacity>
+
+        {selectedCollege && (
+          <Text style={styles.selected} numberOfLines={2}>
+            {selectedCollege}
+          </Text>
+        )}
+
+        <Ionicons
+          name="chevron-down"
+          size={16}
+          color={selectedCollege ? COLORS.secondary : COLORS.textSecondary}
+          style={styles.chevron}
+        />
+      </TouchableOpacity>
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        />
+
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+
+          <Text style={styles.sheetTitle}>اختر الكلية</Text>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {COLLEGES.map((college) => {
+              const isActive = selectedCollege === college;
+              return (
+                <TouchableOpacity
+                  key={college}
+                  style={[styles.option, isActive && styles.optionActive]}
+                  onPress={() => handleSelect(college)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isActive && styles.optionTextActive,
+                    ]}
+                  >
+                    {college}
+                  </Text>
+                  {isActive && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color={COLORS.secondary}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            <View style={{ height: 30 }} />
+          </ScrollView>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -79,12 +158,66 @@ const styles = StyleSheet.create({
   labelActive: {
     color: COLORS.secondary,
   },
-  address: {
+  selected: {
     fontSize: 11,
     color: COLORS.secondary,
     fontWeight: "600",
     marginTop: 6,
     textAlign: "center",
     lineHeight: 16,
+  },
+  chevron: {
+    marginTop: 6,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  sheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    maxHeight: "70%",
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#DDD",
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.textPrimary,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  option: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginBottom: 6,
+    backgroundColor: "#F8F9FA",
+  },
+  optionActive: {
+    backgroundColor: "#EBF5FF",
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    textAlign: "right",
+    flex: 1,
+  },
+  optionTextActive: {
+    color: COLORS.secondary,
+    fontWeight: "700",
   },
 });
