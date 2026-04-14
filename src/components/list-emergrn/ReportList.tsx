@@ -15,6 +15,7 @@ interface ReportListProps {
   onRefresh: () => void;
   expandedId: string | null;
   onCardPress: (id: string) => void;
+  onResolve: (id: string) => void;
 }
 export function ReportList({
   reports,
@@ -22,6 +23,7 @@ export function ReportList({
   onRefresh,
   expandedId,
   onCardPress,
+  onResolve,
 }: ReportListProps) {
   return (
     <FlatList
@@ -33,6 +35,7 @@ export function ReportList({
           report={item}
           isExpanded={item.id === expandedId}
           onPress={() => onCardPress(item.id === expandedId ? '' : item.id)}
+          onResolve={() => onResolve(item.id)}
         />
       )}
       contentContainerStyle={styles.listContent}
