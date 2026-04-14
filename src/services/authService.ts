@@ -1,43 +1,32 @@
-import { User, UserRole } from '../types';
 
-const USE_MOCK_DATA = true;
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const USER_STORAGE_KEY = "user";
 
-const MOCK_USER: User = {
-  uid: 'user-123',
-  fullName: 'وجدان',
-  email: 'student@najah.edu',
-  universityId: '12217661',
-  role: 'student', 
+/** Matches Firestore `users` docs + local-only fields */
+export type StoredUser = {
+    uid: string;
+    email: string;
+    fullName?: string;
+    role?: string;
+    createdAt?: string;
+    [key: string]: unknown;
 };
 
-export const login = async (email: string, password: string): Promise<User> => {
-  if (USE_MOCK_DATA) {
-    await delay(1500); 
-    if (email === 'test@test.com' && password === '123456') {
-      return MOCK_USER;
+export async function saveUserLocally(userData: StoredUser): Promise<void> {
+    await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+}
+
+export async function getUserLocally(): Promise<StoredUser | null> {
+    try {
+        const raw = await AsyncStorage.getItem(USER_STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw) as StoredUser;
+    } catch {
+        return null;
     }
-    throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
-  } else {
-    throw new Error('Firebase not implemented yet');
-  }
-};
+}
 
-export const signup = async (userData: any): Promise<User> => {
-  if (USE_MOCK_DATA) {
-    await delay(2000);
-    return { ...MOCK_USER, ...userData, uid: `new-user-${Date.now()}` };
-  } else {
-    throw new Error('Firebase not implemented yet');
-  }
-};
-
-export const resetPassword = async (email: string): Promise<boolean> => {
-  if (USE_MOCK_DATA) {
-    await delay(1000);
-    return true; 
-  } else {
-    throw new Error('Firebase not implemented yet');
-  }
-};
+export async function clearUserLocally(): Promise<void> {
+    await AsyncStorage.removeItem(USER_STORAGE_KEY);
+}

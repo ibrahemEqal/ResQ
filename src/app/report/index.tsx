@@ -14,11 +14,11 @@ import {
 import { COLORS } from "../../constants/colors";
 import { ReportPriority } from "../../types";
 
-import CategoryGrid from "../../components/report-components/CategoryGrid";
-import DescriptionInput from "../../components/report-components/DescriptionInput";
-import LocationButton from "../../components/report-components/LocationButton";
-import MediaButton from "../../components/report-components/MediaButton";
-import SubmitButton from "../../components/report-components/SubmitButton";
+import CategoryGrid from "@/app/ـcomponents/report-components/CategoryGrid";
+import DescriptionInput from "@/app/ـcomponents/report-components/DescriptionInput";
+import CollegePicker from "@/app/ـcomponents/report-components/LocationButton";
+import MediaButton from "@/app/ـcomponents/report-components/MediaButton";
+import SubmitButton from "@/app/ـcomponents/report-components/SubmitButton";
 
 import { useReportStore } from "./useReportStore";
 
@@ -27,9 +27,8 @@ export default function ReportScreen() {
     selectedCategory,
     priority,
     description,
-    location,
+    selectedCollege,
     mediaFile,
-    locationLoading,
     mediaLoading,
     submitting,
     error,
@@ -39,7 +38,7 @@ export default function ReportScreen() {
     submitScale,
     setSelectedCategory,
     setDescription,
-    handleGetLocation,
+    setSelectedCollege,
     handlePickMedia,
     handleSubmit,
   } = useReportStore();
@@ -110,12 +109,11 @@ export default function ReportScreen() {
           <SectionLabel icon="create" title="وصف الحادث" />
           <DescriptionInput value={description} onChange={setDescription} />
 
-          <SectionLabel icon="attach" title="الموقع والوسائط" />
+          <SectionLabel icon="attach" title="الكلية والوسائط" />
           <View style={styles.actionRow}>
-            <LocationButton
-              location={location}
-              loading={locationLoading}
-              onPress={handleGetLocation}
+            <CollegePicker
+              selectedCollege={selectedCollege}
+              onSelect={setSelectedCollege}
             />
             <MediaButton
               mediaFile={mediaFile}
@@ -156,7 +154,7 @@ const banner = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#FFF",
-    textAlign: "right", // RTL
+    textAlign: "right",
     lineHeight: 19,
   },
   closeBtn: {

@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView, Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { RFValue } from 'react-native-responsive-fontsize';
-import CustomInput from '../components/CustomInput';
-import { COLORS } from '../constants/colors';
-import { Theme } from '../constants/theme';
+import CustomInput from '@/app/ـcomponents/CustomInput';
+import { auth, db } from '@/config/firebaseConfig';
+import { COLORS } from '@/constants/colors';
+import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import {auth} from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../config/firebaseConfig';
+import React, { useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function LoginScreen() {
@@ -66,8 +66,7 @@ export default function LoginScreen() {
           const userData = userDocSnap.data();
           
           if (userData.role === 'security' || userData.role === 'admin') {
-            router.replace('/dashboard');
-          } else {
+            router.replace('/(tabs)/dashboard');          } else {
             router.replace('/home');
           }
         } else {
@@ -129,7 +128,7 @@ export default function LoginScreen() {
                 <Text style={styles.link}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push('/signup')}>
+              <TouchableOpacity onPress={() => router.push('./signup')}>
                 <Text style={styles.signupLink}>
                   Don’t have an account? Sign Up
                 </Text>

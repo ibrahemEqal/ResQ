@@ -1,3 +1,4 @@
+import { COLORS } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
@@ -6,7 +7,6 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
-import { COLORS } from "../../constants/colors";
 
 interface Props {
   submitting: boolean;

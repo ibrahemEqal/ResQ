@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text,TouchableOpacity,StyleSheet,Alert, ScrollView,KeyboardAvoidingView,Platform} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { RFValue } from 'react-native-responsive-fontsize';
-import CustomInput from '../components/CustomInput';
-import { COLORS } from '../constants/colors';
-import { Theme } from '../constants/theme';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import {doc,setDoc} from 'firebase/firestore';
-import {auth,db} from '../config/firebaseConfig';
+import CustomInput from '@/app/ـcomponents/CustomInput';
+import { auth, db } from '@/config/firebaseConfig';
+import { COLORS } from '@/constants/colors';
+import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function SignupScreen() {

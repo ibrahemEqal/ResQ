@@ -1,3 +1,5 @@
+import { MediaFile } from "@/app/report/useReportStore";
+import { COLORS } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
@@ -6,8 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { MediaFile } from "../../app/report/useReportStore";
-import { COLORS } from "../../constants/colors";
 
 interface Props {
   mediaFile: MediaFile | null;

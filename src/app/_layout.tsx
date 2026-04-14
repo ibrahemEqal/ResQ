@@ -12,13 +12,15 @@ export default function RootLayout() {
       }}
     >
       <Stack.Screen
-        name="home"
-        options={{ title: "الرئيسية", headerShown: false }}
+        name="(tabs)"
+        options={{ headerShown: false }}
       />
-      <Stack.Screen name="tips" options={{ title: "نصائح الطوارئ" }} />
-      <Stack.Screen name="dashboard" options={{ title: "لوحة التحكم" }} />
+
       <Stack.Screen name="report" options={{ title: "إبلاغ عن طارئ" }} />
-      <Stack.Screen name="settings" options={{ title: "الإعدادات" }} />
+      <Stack.Screen name="incident/[id]" options={{ title: "تفاصيل البلاغ" }} />
+
+      <Stack.Screen name="auth" options={{ headerShown: false }} />
+
     </Stack>
   );
 }
