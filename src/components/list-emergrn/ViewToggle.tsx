@@ -9,26 +9,25 @@ interface ViewToggleProps {
   onChange: (mode: 'list' | 'map') => void;
 }
 
+const TOGGLE_OPTIONS = [
+  { value: 'list', label: '☰ القائمة' },
+  { value: 'map', label: '🗺️ الخريطة' },
+] as const;
+
 export function ViewToggle({ value, onChange }: ViewToggleProps) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[styles.button, value === 'list' && styles.buttonActive]}
-        onPress={() => onChange('list')}
-      >
-        <Text style={[styles.buttonText, value === 'list' && styles.buttonTextActive]}>
-          ☰ القائمة
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.button, value === 'map' && styles.buttonActive]}
-        onPress={() => onChange('map')}
-      >
-        <Text style={[styles.buttonText, value === 'map' && styles.buttonTextActive]}>
-          🗺️ الخريطة
-        </Text>
-      </TouchableOpacity>
+      {TOGGLE_OPTIONS.map((option) => (
+        <TouchableOpacity
+          key={option.value}
+          style={[styles.button, value === option.value && styles.buttonActive]}
+          onPress={() => onChange(option.value)}
+        >
+          <Text style={[styles.buttonText, value === option.value && styles.buttonTextActive]}>
+            {option.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 }
