@@ -7,9 +7,8 @@ interface ReportCardProps {
   report: Report;
   isExpanded: boolean;
   onPress: () => void;
-  onResolve: () => void;
 }
-export function ReportCard({ report, isExpanded, onPress, onResolve }: ReportCardProps) {
+export function ReportCard({ report, isExpanded, onPress }: ReportCardProps) {
   const statusColor = getStatusColor(report.status);
   return (
     <TouchableOpacity
@@ -41,11 +40,6 @@ export function ReportCard({ report, isExpanded, onPress, onResolve }: ReportCar
       {isExpanded && (
         <View style={styles.descriptionBox}>
           <Text style={styles.descriptionText}>{report.description}</Text>
-          {report.status !== 'Resolved' && (
-            <TouchableOpacity style={styles.resolveBtn} onPress={onResolve}>
-              <Text style={styles.resolveBtnText}>✔️ تعيين كـ تم الحل</Text>
-            </TouchableOpacity>
-          )}
         </View>
       )}
       {}
@@ -134,17 +128,5 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 11,
     color: COLORS.textSecondary,
-  },
-  resolveBtn: {
-    marginTop: 12,
-    backgroundColor: '#34C759',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  resolveBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
 });

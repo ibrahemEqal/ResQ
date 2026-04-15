@@ -9,35 +9,32 @@ export const TYPE_FILTERS: FilterType[] = [
 export const STATUS_FILTERS: FilterStatus[] = [
   'All', 'Critical', 'Open', 'In Progress', 'Resolved',
 ];
-export const getStatusColor = (status: ReportStatus): string => {
-  switch (status) {
-    case 'Critical':    return '#FF3B30'; 
-    case 'Open':        return '#FF9500'; 
-    case 'In Progress': return '#007AFF'; 
-    case 'Resolved':    return '#34C759'; 
-    default:            return '#8E8E93'; 
-  }
+const STATUS_COLORS: Record<ReportStatus, string> = {
+  'Critical':    '#FF3B30',
+  'Open':        '#FF9500',
+  'In Progress': '#007AFF',
+  'Resolved':    '#34C759',
 };
-export const getStatusLabel = (status: ReportStatus): string => {
-  switch (status) {
-    case 'Critical':    return 'حرج';
-    case 'Open':        return 'مفتوح';
-    case 'In Progress': return 'قيد المعالجة';
-    case 'Resolved':    return 'تم الحل';
-    default:            return status;
-  }
+
+const STATUS_LABELS: Record<ReportStatus, string> = {
+  'Critical':    'حرج',
+  'Open':        'مفتوح',
+  'In Progress': 'قيد المعالجة',
+  'Resolved':    'تم الحل',
 };
-export const getTypeLabel = (type: EmergencyType): string => {
-  switch (type) {
-    case 'Fire':       return '🔥 حريق';
-    case 'Fainting':   return '🏥 إغماء';
-    case 'Security':   return '🔒 أمني';
-    case 'Electrical': return '⚡ كهربائي';
-    case 'Injury':     return '🩹 إصابة';
-    case 'Other':      return '⚠️ أخرى';
-    default:           return type;
-  }
+
+const TYPE_LABELS: Record<EmergencyType, string> = {
+  'Fire':       '🔥 حريق',
+  'Fainting':   '🏥 إغماء',
+  'Security':   '🔒 أمني',
+  'Electrical': '⚡ كهربائي',
+  'Injury':     '🩹 إصابة',
+  'Other':      '⚠️ أخرى',
 };
+
+export const getStatusColor = (status: ReportStatus): string => STATUS_COLORS[status] ?? '#8E8E93';
+export const getStatusLabel = (status: ReportStatus): string => STATUS_LABELS[status] ?? status;
+export const getTypeLabel   = (type: EmergencyType):  string => TYPE_LABELS[type]   ?? type;
 export const getTimeAgo = (dateStr: string | Date): string => {
   const date     = new Date(dateStr);
   const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
