@@ -6,6 +6,7 @@ import {
   getDoc,
   getDocs,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { Report } from "../types";
@@ -21,7 +22,6 @@ export const submitReport = async (
       status: "Open",
       createdAt: new Date().toISOString(),
     };
-
     const docRef = await addDoc(collection(db, REPORTS_COLLECTION), newReport);
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -30,22 +30,42 @@ export const submitReport = async (
   }
 };
 
-export const getReportsByUser = async (uid: string): Promise<Report[]> => {
-  const q = query(collection(db, "reports"), where("userId", "==", uid));
+export const getReportsByUser = async (userId: string): Promise<Report[]> => {
+  try {
+    const q = query(
+      collection(db, REPORTS_COLLECTION),
+      where("userId", "==", userId),
+    );
+    const querySnapshot = await getDocs(q);
+    const reports: Report[] = [];
+    querySnapshot.forEach((doc) => {
+      reports.push({ id: doc.id, ...doc.data() } as Report);
+    });
+    return reports;
+  } catch (error) {
+    console.error("Error getting reports: ", error);
+    return [];
+  }
+};
 
-  const snap = await getDocs(q);
-
-  return snap.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Report, "id">),
-  }));
+export const getReports = async (): Promise<Report[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, REPORTS_COLLECTION));
+    const reports: Report[] = [];
+    querySnapshot.forEach((doc) => {
+      reports.push({ id: doc.id, ...doc.data() } as Report);
+    });
+    return reports;
+  } catch (error) {
+    console.error("Error getting reports: ", error);
+    return [];
+  }
 };
 
 export const getReportById = async (id: string): Promise<Report | null> => {
   try {
     const docRef = doc(db, REPORTS_COLLECTION, id);
     const docSnap = await getDoc(docRef);
-
     if (docSnap.exists()) {
       return { id: docSnap.id, ...docSnap.data() } as Report;
     } else {
@@ -54,5 +74,16 @@ export const getReportById = async (id: string): Promise<Report | null> => {
   } catch (error) {
     console.error("Error getting report details: ", error);
     return null;
+  }
+};
+
+export const markReportAsResolved = async (id: string): Promise<boolean> => {
+  try {
+    const docRef = doc(db, REPORTS_COLLECTION, id);
+    await updateDoc(docRef, { status: "Resolved" });
+    return true;
+  } catch (error) {
+    console.error("Error updating report status: ", error);
+    return false;
   }
 };

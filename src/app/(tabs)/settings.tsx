@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { useEffect, useState } from "react";
 import {
   Alert,
   SafeAreaView,
@@ -11,21 +12,28 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from '@/constants/colors';
-const MOCK_USER = {
-  fullName: "أحمد شنطي",
-  email: "ahmad.shanti@najah.edu",
-  universityId: "219876",
-  role: "student" as const,
-};
+import { auth } from "../../config/firebaseConfig";
+import { COLORS } from "../../constants/colors";
 
 const APP_VERSION = "1.0.0";
 
 export default function Settings() {
+  const [user, setUser] = useState<User | null>(null);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emergencySound, setEmergencySound] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+      } else {
+        router.replace("./login");
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const handleLogout = () => {
     Alert.alert("تسجيل الخروج", "هل أنت متأكد أنك تريد تسجيل الخروج؟", [
@@ -33,10 +41,17 @@ export default function Settings() {
       {
         text: "خروج",
         style: "destructive",
-        onPress: () => router.replace("./login"),
+        onPress: async () => {
+          await signOut(auth);
+          router.replace("./login");
+        },
       },
     ]);
   };
+
+  const fullName = user?.displayName ?? "مستخدم";
+  const email = user?.email ?? "";
+  const uid = user?.uid?.slice(0, 8) ?? "—";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -47,20 +62,14 @@ export default function Settings() {
       >
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {MOCK_USER.fullName.charAt(0)}
-            </Text>
+            <Text style={styles.avatarText}>{fullName.charAt(0)}</Text>
           </View>
 
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{MOCK_USER.fullName}</Text>
-            <Text style={styles.profileEmail}>{MOCK_USER.email}</Text>
-
-            {/* Role badge */}
+            <Text style={styles.profileName}>{fullName}</Text>
+            <Text style={styles.profileEmail}>{email}</Text>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>
-                {MOCK_USER.role === "student" ? "طالب" : MOCK_USER.role}
-              </Text>
+              <Text style={styles.roleBadgeText}>طالب</Text>
             </View>
           </View>
 
@@ -75,10 +84,9 @@ export default function Settings() {
             icon="id-card"
             iconBg="#E3F2FD"
             iconColor="#1565C0"
-            title="الرقم الجامعي"
-            subtitle={MOCK_USER.universityId}
+            title="معرّف المستخدم"
+            subtitle={uid}
           />
-          <Divider />
         </View>
 
         <SectionHeader title="الإشعارات" icon="notifications" />
@@ -104,7 +112,6 @@ export default function Settings() {
             toggleValue={emergencySound}
             onToggle={setEmergencySound}
           />
-          <Divider />
         </View>
 
         <SectionHeader title="الخصوصية" icon="shield-checkmark" />
@@ -178,23 +185,6 @@ function SectionHeader({ title, icon }: { title: string; icon: string }) {
   );
 }
 
-const section = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 28,
-    marginBottom: 10,
-    paddingHorizontal: 4,
-  },
-  text: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-});
 function Divider() {
   return (
     <View
@@ -268,6 +258,24 @@ function SettingRow({
   );
 }
 
+const section = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 28,
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  text: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+});
+
 const row = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -283,9 +291,7 @@ const row = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  textBlock: {
-    flex: 1,
-  },
+  textBlock: { flex: 1 },
   title: {
     fontSize: 15,
     fontWeight: "700",
@@ -310,7 +316,6 @@ const styles = StyleSheet.create({
     maxWidth: 450,
     alignSelf: "center",
   },
-
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -373,7 +378,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   group: {
     backgroundColor: COLORS.surface,
     borderRadius: 20,
@@ -384,7 +388,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-
   logoutBtn: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,5 +1,5 @@
-import { StyleSheet, Text, TextInput } from "react-native";
 import { COLORS } from "@/constants/colors";
+import { StyleSheet, Text, TextInput } from "react-native";
 
 const MAX_LENGTH = 300;
 
