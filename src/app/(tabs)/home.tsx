@@ -187,7 +187,11 @@ export default function Home() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.premiumCard}
+            activeOpacity={0.8}
+            onPress={() => router.push("/list-emergrn")}
+          >
             <View style={styles.cardHeader}>
               <View
                 style={[styles.iconWrapper, { backgroundColor: "#FFF3E0" }]}
@@ -196,8 +200,8 @@ export default function Home() {
               </View>
               <View style={styles.notificationDot} />
             </View>
-            <Text style={styles.cardTitle}>تنبيهات</Text>
-            <Text style={styles.cardDesc}>لا توجد أخطار</Text>
+            <Text style={styles.cardTitle}>الخريطة الحية</Text>
+            <Text style={styles.cardDesc}>متابعة البلاغات</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
