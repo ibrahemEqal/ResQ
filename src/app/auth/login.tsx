@@ -5,7 +5,7 @@ import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading,setLoading]=useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [errors, setErrors] = useState({
     email: '',
@@ -53,24 +53,25 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (validate()) {
-      setLoading(true); 
-      
+      setLoading(true);
+
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const userUid = userCredential.user.uid;
-        
+
         const userDocRef = doc(db, "users", userUid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          
+
           if (userData.role === 'security' || userData.role === 'admin') {
-            router.replace('/(tabs)/dashboard');          } else {
-            router.replace('/home');
+            router.replace('/(tabs)/dashboard');
+          } else {
+            router.replace('/(tabs)/home');
           }
         } else {
-          router.replace('/home'); 
+          router.replace('/(tabs)/home');
         }
 
       } catch (error: any) {
@@ -128,7 +129,7 @@ export default function LoginScreen() {
                 <Text style={styles.link}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push('./signup')}>
+              <TouchableOpacity onPress={() => router.push('/auth/signup')}>
                 <Text style={styles.signupLink}>
                   Don’t have an account? Sign Up
                 </Text>

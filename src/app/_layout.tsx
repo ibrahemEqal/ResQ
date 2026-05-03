@@ -18,10 +18,25 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
 
-        <Stack.Screen name="report" options={{ title: "إبلاغ عن طارئ" }} />
-        <Stack.Screen name="incident/[id]" options={{ title: "تفاصيل البلاغ" }} />
+        <Stack.Screen
+          name="auth/login"
+          options={{ headerShown: false }}
+        />
 
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="auth/signup"
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="report"
+          options={{ title: "إبلاغ عن طارئ" }}
+        />
+
+        <Stack.Screen
+          name="incident/[id]"
+          options={{ title: "تفاصيل البلاغ" }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

@@ -22,7 +22,7 @@
     "expo-glass-effect": "~0.1.9",
     "expo-haptics": "~15.0.8",
     "expo-image": "~3.0.11",
-    "expo-image-picker": "~17.0.10",
+    "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.11",
     "expo-location": "~19.0.8",
@@ -51,5 +51,11 @@
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
+  "plugins": [
+  ["expo-image-picker", {
+    "photosPermission": "يحتاج التطبيق للوصول إلى معرض الصور",
+    "cameraPermission": "يحتاج التطبيق للوصول إلى الكاميرا"
+  }]
+  ],
   "private": true
 }
