@@ -12,8 +12,8 @@ import {
     View,
 } from "react-native";
 
-import Filters from "@/app/ـcomponents/report/Filters";
-import ReportCard from "@/app/ـcomponents/report/ReportCard";
+import Filters from "@/components/report/Filters";
+import ReportCard from "@/components/report/ReportCard";
 import { auth, db } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
 import { getReportsByUser } from "@/services/reportService";

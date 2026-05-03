@@ -1,4 +1,4 @@
-import CustomInput from '@/app/ـcomponents/CustomInput';
+import CustomInput from '@/components/CustomInput';
 import { auth, db } from '@/config/firebaseConfig';
 import { COLORS } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
