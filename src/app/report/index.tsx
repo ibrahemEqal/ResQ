@@ -14,11 +14,11 @@ import {
 import { COLORS } from "../../constants/colors";
 import { ReportPriority } from "../../types";
 
-import CategoryGrid from "@/app/ـcomponents/report-components/CategoryGrid";
-import DescriptionInput from "@/app/ـcomponents/report-components/DescriptionInput";
-import CollegePicker from "@/app/ـcomponents/report-components/LocationButton";
-import MediaButton from "@/app/ـcomponents/report-components/MediaButton";
-import SubmitButton from "@/app/ـcomponents/report-components/SubmitButton";
+import CategoryGrid from "@/components/report-components/CategoryGrid";
+import DescriptionInput from "@/components/report-components/DescriptionInput";
+import CollegePicker from "@/components/report-components/LocationButton";
+import MediaButton from "@/components/report-components/MediaButton";
+import SubmitButton from "@/components/report-components/SubmitButton";
 
 import { useReportStore } from "./useReportStore";
 

@@ -2,9 +2,9 @@ import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { InfoCard } from '@/app/ـcomponents/InfoCard';
-import { ReportActions } from '@/app/ـcomponents/ReportActions';
-import { TimelineSection } from '@/app/ـcomponents/TimelineSection';
+import { InfoCard } from '@/components/InfoCard';
+import { ReportActions } from '@/components/ReportActions';
+import { TimelineSection } from '@/components/TimelineSection';
 import { useIncidentDetails } from './hooks/useIncidentDetails';
 import { styles } from './styles';
 import { formatDate } from './utils/formatDate';

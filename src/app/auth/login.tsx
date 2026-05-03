@@ -1,4 +1,4 @@
-import CustomInput from '@/app/ـcomponents/CustomInput';
+import CustomInput from '@/components/CustomInput';
 import { auth, db } from '@/config/firebaseConfig';
 import { COLORS } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
@@ -52,41 +52,46 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (validate()) {
-      setLoading(true);
+  if (!validate()) return;
+  
+  setLoading(true);
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userUid = userCredential.user.uid;
 
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const userUid = userCredential.user.uid;
+    try {
+      const userDocRef = doc(db, "users", userUid);
+      const userDocSnap = await getDoc(userDocRef);
 
-        const userDocRef = doc(db, "users", userUid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-
-          if (userData.role === 'security' || userData.role === 'admin') {
-            router.replace('/(tabs)/dashboard');
-          } else {
-            router.replace('/(tabs)/home');
-          }
-        } else {
-          router.replace('/(tabs)/home');
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        if (userData.role === 'security' || userData.role === 'admin') {
+          router.replace('/(tabs)/dashboard');
+          return;
         }
-
-      } catch (error: any) {
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-          Alert.alert('خطأ', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
-        } else if (error.code === 'auth/invalid-email') {
-          Alert.alert('خطأ', 'صيغة البريد الإلكتروني غير صحيحة');
-        } else {
-          Alert.alert('حدث خطأ', error.message);
-        }
-      } finally {
-        setLoading(false);
       }
+    } catch {
+      // Firestore فشل — تجاهل وروح على home
     }
-  };
+
+    router.replace('/(tabs)/home');
+
+  } catch (error: any) {
+    if (
+      error.code === 'auth/user-not-found' ||
+      error.code === 'auth/wrong-password' ||
+      error.code === 'auth/invalid-credential'
+    ) {
+      Alert.alert('خطأ', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
+    } else if (error.code === 'auth/invalid-email') {
+      Alert.alert('خطأ', 'صيغة البريد الإلكتروني غير صحيحة');
+    } else {
+      Alert.alert('حدث خطأ', error.message);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

@@ -29,7 +29,7 @@ export default function RootLayout() {
         />
 
         <Stack.Screen
-          name="report"
+          name="report/index"
           options={{ title: "إبلاغ عن طارئ" }}
         />
 

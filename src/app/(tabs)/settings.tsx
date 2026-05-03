@@ -1,8 +1,10 @@
+import { auth, storage } from "@/config/firebaseConfig";
+import { COLORS } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { onAuthStateChanged, signOut, updateProfile, User } from "firebase/auth";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,11 +20,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../../config/firebaseConfig";
-import { COLORS } from "../../constants/colors";
 
 const APP_VERSION = "1.0.0";
-const storage = getStorage();
 
 export default function Settings() {
   const [user, setUser] = useState<User | null>(null);
@@ -30,8 +29,6 @@ export default function Settings() {
   const [emergencySound, setEmergencySound] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
-
-  // Edit modal
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,7 +39,7 @@ export default function Settings() {
       if (firebaseUser) {
         setUser(firebaseUser);
       } else {
-        router.replace("./auth/login");
+        router.replace("/auth/login");
       }
     });
     return unsubscribe;
@@ -97,20 +94,19 @@ export default function Settings() {
     const result =
       source === "camera"
         ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.7,
-        })
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+          })
         : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          aspect: [1, 1],
-          quality: 0.7,
-        });
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+          });
 
     if (result.canceled || !result.assets[0].uri) return;
-
     await uploadPhoto(result.assets[0].uri);
   };
 
@@ -118,14 +114,11 @@ export default function Settings() {
     if (!user) return;
     try {
       setUploadingPhoto(true);
-
       const response = await fetch(uri);
       const blob = await response.blob();
-
       const storageRef = ref(storage, `profilePhotos/${user.uid}.jpg`);
       await uploadBytes(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
-
       await updateProfile(user, { photoURL: downloadURL });
       setUser({ ...user, photoURL: downloadURL } as User);
     } catch (e) {
@@ -143,7 +136,7 @@ export default function Settings() {
         style: "destructive",
         onPress: async () => {
           await signOut(auth);
-          router.replace("../auth/login");
+          router.replace("/auth/login");
         },
       },
     ]);
@@ -304,7 +297,6 @@ export default function Settings() {
         <View style={modal.overlay}>
           <View style={modal.card}>
             <Text style={modal.title}>تعديل الاسم</Text>
-
             <TextInput
               style={modal.input}
               value={editName}
@@ -314,7 +306,6 @@ export default function Settings() {
               textAlign="right"
               autoFocus
             />
-
             <View style={modal.actions}>
               <TouchableOpacity
                 style={modal.cancelBtn}
@@ -322,7 +313,6 @@ export default function Settings() {
               >
                 <Text style={modal.cancelText}>إلغاء</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={modal.saveBtn}
                 onPress={handleSaveName}
@@ -451,8 +441,7 @@ const modal = StyleSheet.create({
   actions: { flexDirection: "row", gap: 10 },
   cancelBtn: {
     flex: 1, paddingVertical: 13, borderRadius: 14,
-    borderWidth: 1.5, borderColor: COLORS.border,
-    alignItems: "center",
+    borderWidth: 1.5, borderColor: COLORS.border, alignItems: "center",
   },
   cancelText: { fontSize: 15, fontWeight: "700", color: COLORS.textSecondary },
   saveBtn: {
