@@ -3,7 +3,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const USER_STORAGE_KEY = "user";
 
-/** Matches Firestore `users` docs + local-only fields */
 export type StoredUser = {
     uid: string;
     email: string;

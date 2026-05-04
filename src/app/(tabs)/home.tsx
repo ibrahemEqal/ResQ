@@ -1,21 +1,22 @@
+import { COLORS } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Easing,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Alert
+    Alert,
+    Animated,
+    Easing,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
-import { COLORS } from "@/constants/colors";
 
 import { auth, db } from "@/config/firebaseConfig";
+import { clearUserLocally } from "@/services/authService";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { signOut, onAuthStateChanged } from "firebase/auth";
 
 export default function Home() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -52,6 +53,8 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      await clearUserLocally();
+      console.log("🚪 تم تسجيل الخروج وحذف البيانات المحلية من Home");
       router.replace('/auth/login');
     } catch (error) {
       Alert.alert("خطأ", "حدثت مشكلة أثناء تسجيل الخروج");

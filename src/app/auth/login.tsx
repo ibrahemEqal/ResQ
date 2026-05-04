@@ -2,6 +2,7 @@ import CustomInput from '@/components/CustomInput';
 import { auth, db } from '@/config/firebaseConfig';
 import { COLORS } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
+import { saveUserLocally } from '@/services/authService';
 import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -59,19 +60,34 @@ export default function LoginScreen() {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const userUid = userCredential.user.uid;
 
+    let userRole = null;
     try {
       const userDocRef = doc(db, "users", userUid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        if (userData.role === 'security' || userData.role === 'admin') {
-          router.replace('/(tabs)/dashboard');
-          return;
-        }
+        userRole = userData.role;
       }
     } catch {
       // Firestore فشل — تجاهل وروح على home
+    }
+
+    // حفظ بيانات المستخدم محلياً
+    await saveUserLocally({
+      uid: userUid,
+      email: userCredential.user.email || '',
+      fullName: userCredential.user.displayName || '',
+      role: userRole,
+    });
+    console.log("💾 تم حفظ بيانات المستخدم محلياً بنجاح:", {
+      email: userCredential.user.email,
+      role: userRole,
+    });
+
+    if (userRole === 'security' || userRole === 'admin') {
+      router.replace('/(tabs)/dashboard');
+      return;
     }
 
     router.replace('/(tabs)/home');
