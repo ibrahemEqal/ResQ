@@ -1,43 +1,53 @@
-import { Stack } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { COLORS } from "../constants/colors";
+import { auth, db } from "@/config/firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { Slot, router } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { COLORS } from "@/constants/colors";
 
 export default function RootLayout() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: COLORS.primary },
-          headerTintColor: COLORS.surface,
-          headerTitleStyle: { fontWeight: "bold" },
-          headerTitleAlign: "center",
-        }}
-      >
-        <Stack.Screen
-          name="(tabs)"
-          options={{ headerShown: false }}
-        />
+  const [checking, setChecking] = useState(true);
 
-        <Stack.Screen
-          name="auth/login"
-          options={{ headerShown: false }}
-        />
+  useEffect(() => {
 
-        <Stack.Screen
-          name="auth/signup"
-          options={{ headerShown: false }}
-        />
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
 
-        <Stack.Screen
-          name="report/index"
-          options={{ title: "إبلاغ عن طارئ" }}
-        />
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
 
-        <Stack.Screen
-          name="incident/[id]"
-          options={{ title: "تفاصيل البلاغ" }}
-        />
-      </Stack>
-    </GestureHandlerRootView>
-  );
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            if (userData.role === "security" || userData.role === "admin") {
+              router.replace("/(tabs)/dashboard");
+              return;
+            }
+          }
+        } catch {
+     
+        }
+        router.replace("/(tabs)/home");
+      } else {
+     
+        router.replace("/auth/login");
+      }
+
+      setChecking(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
+  if (checking) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  return <Slot />;
 }
