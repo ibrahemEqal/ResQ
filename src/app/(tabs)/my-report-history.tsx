@@ -9,7 +9,7 @@ import { Report, ReportStatus } from "@/types";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { deleteDoc, doc } from "firebase/firestore";
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,

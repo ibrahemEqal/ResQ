@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { auth, db } from "@/config/firebaseConfig";
+import { clearUserLocally } from "@/services/authService";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -52,6 +53,8 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      await clearUserLocally();
+      console.log("🚪 تم تسجيل الخروج وحذف البيانات المحلية من Home");
       router.replace("/auth/login");
     } catch (error) {
       Alert.alert("خطأ", "حدثت مشكلة أثناء تسجيل الخروج");
@@ -187,7 +190,11 @@ export default function Home() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.premiumCard}
+            activeOpacity={0.8}
+            onPress={() => router.push("/list-emergrn")}
+          >
             <View style={styles.cardHeader}>
               <View
                 style={[styles.iconWrapper, { backgroundColor: "#FFF3E0" }]}
@@ -196,8 +203,8 @@ export default function Home() {
               </View>
               <View style={styles.notificationDot} />
             </View>
-            <Text style={styles.cardTitle}>تنبيهات</Text>
-            <Text style={styles.cardDesc}>لا توجد أخطار</Text>
+            <Text style={styles.cardTitle}>الخريطة الحية</Text>
+            <Text style={styles.cardDesc}>متابعة البلاغات</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

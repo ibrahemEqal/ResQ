@@ -82,6 +82,13 @@ export default function TabLayout() {
             ),
           }}
         />
+
+        <Tabs.Screen
+          name="my-report-history"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </GestureHandlerRootView>
   );

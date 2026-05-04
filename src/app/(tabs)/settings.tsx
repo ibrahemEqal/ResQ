@@ -1,31 +1,133 @@
+import { auth, storage } from "@/config/firebaseConfig";
+import { COLORS } from "@/constants/colors";
+import { clearUserLocally } from "@/services/authService";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useState } from "react";
+import { onAuthStateChanged, signOut, updateProfile, User } from "firebase/auth";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  Image,
+  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from '@/constants/colors';
-const MOCK_USER = {
-  fullName: "أحمد شنطي",
-  email: "ahmad.shanti@najah.edu",
-  universityId: "219876",
-  role: "student" as const,
-};
 
 const APP_VERSION = "1.0.0";
 
 export default function Settings() {
+  const [user, setUser] = useState<User | null>(null);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emergencySound, setEmergencySound] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+      } else {
+        router.replace("/auth/login");
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  const openEditModal = () => {
+    setEditName(user?.displayName ?? "");
+    setEditModalVisible(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!user) return;
+    if (!editName.trim()) {
+      Alert.alert("خطأ", "الاسم لا يمكن أن يكون فارغاً");
+      return;
+    }
+    try {
+      setSaving(true);
+      await updateProfile(user, { displayName: editName.trim() });
+      setUser({ ...user, displayName: editName.trim() } as User);
+      setEditModalVisible(false);
+    } catch (e) {
+      Alert.alert("خطأ", "فشل تحديث الاسم، حاول مجدداً");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePhotoOptions = () => {
+    Alert.alert("صورة البروفايل", "اختر مصدر الصورة", [
+      { text: "الكاميرا 📷", onPress: () => pickImage("camera") },
+      { text: "معرض الصور 🖼️", onPress: () => pickImage("gallery") },
+      { text: "إلغاء", style: "cancel" },
+    ]);
+  };
+
+  const pickImage = async (source: "camera" | "gallery") => {
+    if (source === "camera") {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("خطأ", "يجب السماح للتطبيق بالوصول للكاميرا");
+        return;
+      }
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("خطأ", "يجب السماح للتطبيق بالوصول للمعرض");
+        return;
+      }
+    }
+
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+          });
+
+    if (result.canceled || !result.assets[0].uri) return;
+    await uploadPhoto(result.assets[0].uri);
+  };
+
+  const uploadPhoto = async (uri: string) => {
+    if (!user) return;
+    try {
+      setUploadingPhoto(true);
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `profilePhotos/${user.uid}.jpg`);
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+      await updateProfile(user, { photoURL: downloadURL });
+      setUser({ ...user, photoURL: downloadURL } as User);
+    } catch (e) {
+      Alert.alert("خطأ", "فشل رفع الصورة، حاول مجدداً");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert("تسجيل الخروج", "هل أنت متأكد أنك تريد تسجيل الخروج؟", [
@@ -33,10 +135,20 @@ export default function Settings() {
       {
         text: "خروج",
         style: "destructive",
-        onPress: () => router.replace("./login"),
+        onPress: async () => {
+          await signOut(auth);
+          await clearUserLocally();
+          console.log("🚪 تم تسجيل الخروج وحذف البيانات المحلية");
+          router.replace("/auth/login");
+        },
       },
     ]);
   };
+
+  const fullName = user?.displayName ?? "مستخدم";
+  const email = user?.email ?? "";
+  const uid = user?.uid?.slice(0, 8) ?? "—";
+  const photoURL = user?.photoURL;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -46,25 +158,40 @@ export default function Settings() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {MOCK_USER.fullName.charAt(0)}
-            </Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={handlePhotoOptions}
+            activeOpacity={0.8}
+          >
+            {uploadingPhoto ? (
+              <View style={styles.avatar}>
+                <ActivityIndicator color={COLORS.primary} />
+              </View>
+            ) : photoURL ? (
+              <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{fullName.charAt(0)}</Text>
+              </View>
+            )}
+            <View style={styles.cameraIcon}>
+              <Ionicons name="camera" size={12} color="#fff" />
+            </View>
+          </TouchableOpacity>
 
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{MOCK_USER.fullName}</Text>
-            <Text style={styles.profileEmail}>{MOCK_USER.email}</Text>
-
-            {/* Role badge */}
+            <Text style={styles.profileName}>{fullName}</Text>
+            <Text style={styles.profileEmail}>{email}</Text>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>
-                {MOCK_USER.role === "student" ? "طالب" : MOCK_USER.role}
-              </Text>
+              <Text style={styles.roleBadgeText}>طالب</Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.editBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.editBtn}
+            activeOpacity={0.7}
+            onPress={openEditModal}
+          >
             <Ionicons name="pencil" size={18} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
@@ -75,10 +202,9 @@ export default function Settings() {
             icon="id-card"
             iconBg="#E3F2FD"
             iconColor="#1565C0"
-            title="الرقم الجامعي"
-            subtitle={MOCK_USER.universityId}
+            title="معرّف المستخدم"
+            subtitle={uid}
           />
-          <Divider />
         </View>
 
         <SectionHeader title="الإشعارات" icon="notifications" />
@@ -104,7 +230,6 @@ export default function Settings() {
             toggleValue={emergencySound}
             onToggle={setEmergencySound}
           />
-          <Divider />
         </View>
 
         <SectionHeader title="الخصوصية" icon="shield-checkmark" />
@@ -165,6 +290,47 @@ export default function Settings() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={modal.overlay}>
+          <View style={modal.card}>
+            <Text style={modal.title}>تعديل الاسم</Text>
+            <TextInput
+              style={modal.input}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="الاسم الكامل"
+              placeholderTextColor={COLORS.textSecondary}
+              textAlign="right"
+              autoFocus
+            />
+            <View style={modal.actions}>
+              <TouchableOpacity
+                style={modal.cancelBtn}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={modal.cancelText}>إلغاء</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={modal.saveBtn}
+                onPress={handleSaveName}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={modal.saveText}>حفظ</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -178,31 +344,10 @@ function SectionHeader({ title, icon }: { title: string; icon: string }) {
   );
 }
 
-const section = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 28,
-    marginBottom: 10,
-    paddingHorizontal: 4,
-  },
-  text: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-});
 function Divider() {
   return (
     <View
-      style={{
-        height: 1,
-        backgroundColor: COLORS.border,
-        marginHorizontal: 16,
-      }}
+      style={{ height: 1, backgroundColor: COLORS.border, marginHorizontal: 16 }}
     />
   );
 }
@@ -221,16 +366,8 @@ interface SettingRowProps {
 }
 
 function SettingRow({
-  icon,
-  iconBg,
-  iconColor,
-  title,
-  subtitle,
-  onPress,
-  showChevron,
-  toggle,
-  toggleValue,
-  onToggle,
+  icon, iconBg, iconColor, title, subtitle,
+  onPress, showChevron, toggle, toggleValue, onToggle,
 }: SettingRowProps) {
   return (
     <TouchableOpacity
@@ -242,19 +379,12 @@ function SettingRow({
       <View style={[row.iconWrapper, { backgroundColor: iconBg }]}>
         <Ionicons name={icon as any} size={18} color={iconColor} />
       </View>
-
       <View style={row.textBlock}>
         <Text style={row.title}>{title}</Text>
         {subtitle && <Text style={row.subtitle}>{subtitle}</Text>}
       </View>
-
       {showChevron && (
-        <Ionicons
-          name="chevron-back"
-          size={18}
-          color={COLORS.textSecondary}
-          style={{ opacity: 0.5 }}
-        />
+        <Ionicons name="chevron-back" size={18} color={COLORS.textSecondary} style={{ opacity: 0.5 }} />
       )}
       {toggle && (
         <Switch
@@ -268,138 +398,110 @@ function SettingRow({
   );
 }
 
+const section = StyleSheet.create({
+  row: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    marginTop: 28, marginBottom: 10, paddingHorizontal: 4,
+  },
+  text: {
+    fontSize: 13, fontWeight: "800", color: COLORS.textSecondary,
+    textTransform: "uppercase", letterSpacing: 0.5,
+  },
+});
+
 const row = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 14,
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 14, gap: 14,
   },
   iconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: "center", alignItems: "center",
   },
-  textBlock: {
-    flex: 1,
+  textBlock: { flex: 1 },
+  title: { fontSize: 15, fontWeight: "700", color: COLORS.textPrimary, textAlign: "right" },
+  subtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: "500", marginTop: 2, textAlign: "right" },
+});
+
+const modal = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center", alignItems: "center", padding: 24,
+  },
+  card: {
+    width: "100%", backgroundColor: "#fff",
+    borderRadius: 24, padding: 24, gap: 16,
   },
   title: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    textAlign: "right",
+    fontSize: 18, fontWeight: "900",
+    color: COLORS.textPrimary, textAlign: "center",
   },
-  subtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
-    marginTop: 2,
-    textAlign: "right",
+  input: {
+    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 12,
+    fontSize: 15, color: COLORS.textPrimary,
   },
+  actions: { flexDirection: "row", gap: 10 },
+  cancelBtn: {
+    flex: 1, paddingVertical: 13, borderRadius: 14,
+    borderWidth: 1.5, borderColor: COLORS.border, alignItems: "center",
+  },
+  cancelText: { fontSize: 15, fontWeight: "700", color: COLORS.textSecondary },
+  saveBtn: {
+    flex: 1, paddingVertical: 13, borderRadius: 14,
+    backgroundColor: COLORS.primary, alignItems: "center",
+  },
+  saveText: { fontSize: 15, fontWeight: "800", color: "#fff" },
 });
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F9FA" },
   scroll: { flex: 1 },
-  content: {
-    padding: 20,
-    width: "100%",
-    maxWidth: 450,
-    alignSelf: "center",
-  },
-
+  content: { padding: 20, width: "100%", maxWidth: 450, alignSelf: "center" },
   profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 20,
-    marginTop: 10,
-    gap: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: COLORS.surface, borderRadius: 24,
+    padding: 20, marginTop: 10, gap: 14,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06, shadowRadius: 12, elevation: 3,
   },
+  avatarWrapper: { position: "relative" },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 56, height: 56, borderRadius: 28,
     backgroundColor: COLORS.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "center", alignItems: "center",
   },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: COLORS.primary,
+  avatarImage: { width: 56, height: 56, borderRadius: 28 },
+  avatarText: { fontSize: 22, fontWeight: "900", color: COLORS.primary },
+  cameraIcon: {
+    position: "absolute", bottom: 0, right: 0,
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 1.5, borderColor: "#fff",
   },
   profileInfo: { flex: 1 },
-  profileName: {
-    fontSize: 17,
-    fontWeight: "900",
-    color: COLORS.textPrimary,
-    textAlign: "right",
-  },
-  profileEmail: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
-    marginTop: 2,
-    textAlign: "right",
-  },
+  profileName: { fontSize: 17, fontWeight: "900", color: COLORS.textPrimary, textAlign: "right" },
+  profileEmail: { fontSize: 12, color: COLORS.textSecondary, fontWeight: "500", marginTop: 2, textAlign: "right" },
   roleBadge: {
-    alignSelf: "flex-end",
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
-    marginTop: 6,
+    alignSelf: "flex-end", backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginTop: 6,
   },
-  roleBadgeText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: COLORS.primary,
-  },
+  roleBadgeText: { fontSize: 11, fontWeight: "800", color: COLORS.primary },
   editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: COLORS.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "center", alignItems: "center",
   },
-
   group: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: COLORS.surface, borderRadius: 20, overflow: "hidden",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04, shadowRadius: 10, elevation: 2,
   },
-
   logoutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    marginTop: 32,
-    paddingVertical: 16,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: COLORS.primaryLight,
-    backgroundColor: "#FFF5F5",
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 10, marginTop: 32, paddingVertical: 16, borderRadius: 20,
+    borderWidth: 1.5, borderColor: COLORS.primaryLight, backgroundColor: "#FFF5F5",
   },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.primary,
-  },
+  logoutText: { fontSize: 16, fontWeight: "800", color: COLORS.primary },
 });

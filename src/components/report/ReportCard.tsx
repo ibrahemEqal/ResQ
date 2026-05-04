@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useRef } from "react";
+import { useRef } from "react";
 import {
   Alert,
   Animated,

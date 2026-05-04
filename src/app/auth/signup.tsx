@@ -1,11 +1,11 @@
-import CustomInput from "@/app/ـcomponents/CustomInput";
+import CustomInput from "@/components/CustomInput";
 import { auth, db } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
 import { Theme } from "@/constants/theme";
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,

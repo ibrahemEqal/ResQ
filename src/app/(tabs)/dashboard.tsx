@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import React, { useRef } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { StatBox } from '@/app/ـcomponents/StatBox';
+import { StatBox } from '@/components/StatBox';
 import { useDashboard } from '../incident/hooks/useDashboard';
 
 export default function Dashboard() {

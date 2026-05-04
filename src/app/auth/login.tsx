@@ -1,11 +1,12 @@
-import CustomInput from "@/app/ـcomponents/CustomInput";
+import CustomInput from "@/components/CustomInput";
 import { auth, db } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
 import { Theme } from "@/constants/theme";
+import { saveUserLocally } from "@/services/authService";
 import { router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -51,46 +52,62 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (validate()) {
-      setLoading(true);
+    if (!validate()) return;
 
+    setLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      const userUid = userCredential.user.uid;
+
+      let userRole = null;
       try {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password,
-        );
-        const userUid = userCredential.user.uid;
-
         const userDocRef = doc(db, "users", userUid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-
-          if (userData.role === "security" || userData.role === "admin") {
-            router.replace("/(tabs)/dashboard");
-          } else {
-            router.replace("/home");
-          }
-        } else {
-          router.replace("/home");
+          userRole = userData.role;
         }
-      } catch (error: any) {
-        if (
-          error.code === "auth/user-not-found" ||
-          error.code === "auth/wrong-password" ||
-          error.code === "auth/invalid-credential"
-        ) {
-          Alert.alert("خطأ", "البريد الإلكتروني أو كلمة المرور غير صحيحة");
-        } else if (error.code === "auth/invalid-email") {
-          Alert.alert("خطأ", "صيغة البريد الإلكتروني غير صحيحة");
-        } else {
-          Alert.alert("حدث خطأ", error.message);
-        }
-      } finally {
-        setLoading(false);
+      } catch {
+        // Firestore فشل — تجاهل وروح على home
       }
+
+      // حفظ بيانات المستخدم محلياً
+      await saveUserLocally({
+        uid: userUid,
+        email: userCredential.user.email || "",
+        fullName: userCredential.user.displayName || "",
+        role: userRole,
+      });
+      console.log("💾 تم حفظ بيانات المستخدم محلياً بنجاح:", {
+        email: userCredential.user.email,
+        role: userRole,
+      });
+
+      if (userRole === "security" || userRole === "admin") {
+        router.replace("/(tabs)/dashboard");
+        return;
+      }
+
+      router.replace("/(tabs)/home");
+    } catch (error: any) {
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        Alert.alert("خطأ", "البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      } else if (error.code === "auth/invalid-email") {
+        Alert.alert("خطأ", "صيغة البريد الإلكتروني غير صحيحة");
+      } else {
+        Alert.alert("حدث خطأ", error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -135,7 +152,7 @@ export default function LoginScreen() {
                 <Text style={styles.link}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push("./signup")}>
+              <TouchableOpacity onPress={() => router.push("/auth/signup")}>
                 <Text style={styles.signupLink}>
                   Don’t have an account? Sign Up
                 </Text>
