@@ -1,5 +1,6 @@
 import { auth, storage } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
+import { clearUserLocally } from "@/services/authService";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -136,6 +137,8 @@ export default function Settings() {
         style: "destructive",
         onPress: async () => {
           await signOut(auth);
+          await clearUserLocally();
+          console.log("🚪 تم تسجيل الخروج وحذف البيانات المحلية");
           router.replace("/auth/login");
         },
       },
