@@ -1,8 +1,7 @@
+import { getStatusColor, getStatusLabel, getTimeAgo, getTypeLabel } from '@/components/list-emergrn/store';
 import { COLORS } from '@/constants/colors';
 import { EmergencyType, Report } from '@/types';
-import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getStatusColor, getStatusLabel, getTimeAgo, getTypeLabel } from '../../app/list-emergrn/store';
 interface ReportCardProps {
   report: Report;
   isExpanded: boolean;

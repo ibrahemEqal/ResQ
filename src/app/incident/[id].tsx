@@ -1,14 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import { InfoCard } from '@/components/InfoCard';
 import { ReportActions } from '@/components/ReportActions';
 import { TimelineSection } from '@/components/TimelineSection';
-import { useIncidentDetails } from './hooks/useIncidentDetails';
-import { styles } from './styles';
-import { formatDate } from './utils/formatDate';
-import { statusArabic } from './utils/statusMap';
+import { formatDate } from '@/lib/incident/formatDate';
+import { statusArabic } from '@/lib/incident/statusMap';
+import { styles } from '@/lib/incident/styles';
+import { useIncidentDetails } from '@/lib/incident/useIncidentDetails';
 
 export default function IncidentDetailsPage() {
   const { id } = useLocalSearchParams();

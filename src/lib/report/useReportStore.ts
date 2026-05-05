@@ -73,7 +73,7 @@ export function useReportStore(): ReportStore {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: false,
         quality: 0.8,
       });
@@ -94,12 +94,14 @@ export function useReportStore(): ReportStore {
       const fileName = asset.fileName ?? `photo_${timestamp}.jpg`;
       const storagePath = `report-media/${uid}/${timestamp}_${fileName}`;
       const storageRef = ref(storage, storagePath);
-      await uploadBytes(storageRef, blob);
+      
+      await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
       const downloadURL = await getDownloadURL(storageRef);
 
       setMediaFile({ name: fileName, type: "image", url: downloadURL });
-    } catch {
-      setError("فشل رفع الملف. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      setError(error?.message || "فشل رفع الملف. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
     } finally {
       setMediaLoading(false);
     }
