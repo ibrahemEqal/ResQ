@@ -2,15 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import {
-  Animated,
-  Easing,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Easing,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../../constants/colors";
 import { ReportPriority } from "../../types";
 
@@ -20,7 +20,7 @@ import CollegePicker from "@/components/report-components/LocationButton";
 import MediaButton from "@/components/report-components/MediaButton";
 import SubmitButton from "@/components/report-components/SubmitButton";
 
-import { useReportStore } from "./useReportStore";
+import { useReportStore } from "@/lib/report/useReportStore";
 
 export default function ReportScreen() {
   const {

@@ -1,13 +1,12 @@
-import { getStatusColor, getStatusLabel, getTypeLabel } from '@/app/list-emergrn/store';
+import { getStatusColor, getStatusLabel, getTypeLabel } from '@/components/list-emergrn/store';
 import { COLORS } from '@/constants/colors';
 import { EmergencyType, Report, ReportStatus } from '@/types';
-import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, {
-  Circle,
-  G,
-  Image as SvgImage,
-  Text as SvgText
+    Circle,
+    G,
+    Image as SvgImage,
+    Text as SvgText
 } from 'react-native-svg';
 interface MapViewProps {
   reports: Report[];

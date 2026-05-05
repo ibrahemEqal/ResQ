@@ -1,6 +1,5 @@
-import React from 'react';
+import { styles } from '@/lib/incident/styles';
 import { Text, View } from 'react-native';
-import { styles } from '@/app/incident/styles';
 
 type InfoCardProps = {
   label: string;
