@@ -1,7 +1,7 @@
+import { db } from '@/config/firebaseConfig';
+import { Report } from '@/types';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../../../config/firebaseConfig';
-import { Report } from '../../../types';
 
 export function useDashboard() {
     const [stats, setStats] = useState({ open: 0, critical: 0, resolved: 0 });
