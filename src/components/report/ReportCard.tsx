@@ -78,7 +78,7 @@ export default function ReportCard({
           onPressOut={handlePressOut}
           style={styles.card}
         >
-          <View style={[styles.sideBar, { backgroundColor: "#C62828" }]} />
+          <View style={[styles.sideBar, { backgroundColor: "#FF3B30" }]} />
 
           <View style={styles.content}>
             {/* Header */}
@@ -90,11 +90,11 @@ export default function ReportCard({
                   <Ionicons
                     name="alert-circle-outline"
                     size={18}
-                    color="#C62828"
+                    color="#FF3B30"
                   />
                 </View>
 
-                <Text style={[styles.title, { color: "#C62828" }]}>
+                <Text style={[styles.title, { color: "#FF3B30" }]}>
                   تقرير {report.type}
                 </Text>
               </View>
@@ -102,7 +102,7 @@ export default function ReportCard({
               <Text
                 style={[
                   styles.status,
-                  { backgroundColor: "#FFEBEE", color: "#C62828" },
+                  { backgroundColor: "#FFEBEE", color: "#FF3B30" },
                 ]}
               >
                 {getStatusText(report.status)}
@@ -135,7 +135,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
     marginBottom: 14,
-    shadowColor: "#1D3557",
     shadowOpacity: 0.05,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
