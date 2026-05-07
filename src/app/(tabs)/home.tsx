@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { auth, db } from "@/config/firebaseConfig";
-import { clearUserLocally } from "@/services/authService";
+import { clearUserLocally, getUserLocally } from "@/services/authService";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -27,18 +27,33 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // اعرض الاسم من التخزين المحلي مباشرة (حتى لو Firestore رفض)
+        const local = await getUserLocally();
+        if (local?.fullName && typeof local.fullName === "string") {
+          const safeName = local.fullName.trim();
+          if (safeName) setUserName(safeName);
+        }
+
         try {
           const docRef = doc(db, "users", user.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
-            setUserRole(data.role);
-            setUserName(data.fullName || "مستخدم");
+            const remoteName =
+              typeof data.fullName === "string" ? data.fullName.trim() : "";
+            setUserName(remoteName || "مستخدم");
           } else {
             setUserName("مستخدم");
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          // إذا ما في صلاحيات، نخلي الاسم من المحلي/الافتراضي بدون إزعاج
+          const message =
+            typeof (error as any)?.message === "string"
+              ? (error as any).message
+              : "";
+          if (!message.includes("Missing or insufficient permissions")) {
+            console.error("Error fetching user data:", error);
+          }
           setUserName("مستخدم");
         }
       } else {

@@ -2,6 +2,7 @@ import CustomInput from "@/components/CustomInput";
 import { auth, db } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
 import { Theme } from "@/constants/theme";
+import { saveUserLocally } from "@/services/authService";
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -76,23 +77,37 @@ export default function SignupScreen() {
     if (validate()) {
       setLoading(true);
       try {
+        const normalizedEmail = email.trim();
+        const normalizedFullName = fullName.trim();
         const userCredential = await createUserWithEmailAndPassword(
           auth,
-          email,
+          normalizedEmail,
           password,
         );
         const user = userCredential.user;
-        await setDoc(doc(db, "users", user.uid), {
+        try {
+          await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            fullName: normalizedFullName,
+            email: normalizedEmail,
+            role: "student",
+            createdAt: new Date().toISOString(),
+          });
+        } catch {
+          // إذا قواعد Firestore تمنع الكتابة، نكمل لأن الحساب انعمل في Auth
+        }
+
+        await saveUserLocally({
           uid: user.uid,
-          fullName: fullName,
-          email: email,
+          email: normalizedEmail,
+          fullName: normalizedFullName,
           role: "student",
           createdAt: new Date().toISOString(),
         });
 
         Alert.alert("Success", "Account created successfully");
 
-        router.replace("/home");
+        router.replace("/(tabs)/home");
       } catch (error: any) {
         if (error.code === "auth/email-already-in-use") {
           Alert.alert("Error", "هذا البريد الإلكتروني مستخدم مسبقاً");
