@@ -2,11 +2,30 @@
   "expo": {
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "يحتاج التطبيق للوصول إلى الكاميرا حتى تستطيع التقاط صورة البروفايل."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "يحتاج التطبيق للوصول إلى معرض الصور حتى تستطيع اختيار صورة البروفايل."
+        }
+      ]
     ],
     "scheme": "resq",
     "experiments": {
       "typedRoutes": true
+    },
+    "android": {
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.ragheed.kamal.resq"
     }
   }
 }

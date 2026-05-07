@@ -1,11 +1,10 @@
 import { SymbolView } from "expo-symbols";
 import { PropsWithChildren, useState } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
-import { Spacing } from "@/constants/theme";
+import { Spacing, Theme } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { ThemedText, ThemedView } from "expo-router/ui";
 
 export function Collapsible({
   children,
@@ -23,21 +22,17 @@ export function Collapsible({
         ]}
         onPress={() => setIsOpen((value) => !value)}
       >
-        <ThemedView type="backgroundElement" style={styles.button}>
+        <View style={styles.button}>
           <SymbolView
-            name={{
-              ios: "chevron.right",
-              android: "chevron_right",
-              web: "chevron_right",
-            }}
+            name="chevron.right"
             size={14}
             weight="bold"
-            tintColor={theme.text}
+            tintColor={theme.textPrimary}
             style={{ transform: [{ rotate: isOpen ? "-90deg" : "90deg" }] }}
           />
         </View>
 
-        <Text style={{ color: theme.text }}>{title}</Text>
+        <Text style={{ color: theme.textPrimary }}>{title}</Text>
       </Pressable>
 
       {isOpen && (
@@ -53,7 +48,7 @@ const styles = StyleSheet.create({
   heading: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   pressedHeading: {
     opacity: 0.7,

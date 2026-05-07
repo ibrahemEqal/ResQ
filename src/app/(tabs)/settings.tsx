@@ -2,29 +2,37 @@ import { auth, storage } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
 import { clearUserLocally } from "@/services/authService";
 import { Ionicons } from "@expo/vector-icons";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { onAuthStateChanged, signOut, updateProfile, User } from "firebase/auth";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  onAuthStateChanged,
+  signOut,
+  updateProfile,
+  User,
+} from "firebase/auth";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const APP_VERSION = "1.0.0";
 
 export default function Settings() {
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const cameraRef = useRef<any>(null);
   const [user, setUser] = useState<User | null>(null);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emergencySound, setEmergencySound] = useState(true);
@@ -34,6 +42,9 @@ export default function Settings() {
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [capturingPhoto, setCapturingPhoto] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -62,7 +73,7 @@ export default function Settings() {
       await updateProfile(user, { displayName: editName.trim() });
       setUser({ ...user, displayName: editName.trim() } as User);
       setEditModalVisible(false);
-    } catch (e) {
+    } catch {
       Alert.alert("خطأ", "فشل تحديث الاسم، حاول مجدداً");
     } finally {
       setSaving(false);
@@ -71,58 +82,100 @@ export default function Settings() {
 
   const handlePhotoOptions = () => {
     Alert.alert("صورة البروفايل", "اختر مصدر الصورة", [
-      { text: "الكاميرا 📷", onPress: () => pickImage("camera") },
-      { text: "معرض الصور 🖼️", onPress: () => pickImage("gallery") },
+      { text: "التقاط صورة", onPress: openCamera },
+      { text: "اختيار من المعرض", onPress: pickImageFromGallery },
       { text: "إلغاء", style: "cancel" },
     ]);
   };
 
-  const pickImage = async (source: "camera" | "gallery") => {
-    if (source === "camera") {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("خطأ", "يجب السماح للتطبيق بالوصول للكاميرا");
-        return;
-      }
-    } else {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("خطأ", "يجب السماح للتطبيق بالوصول للمعرض");
+  const openCamera = async () => {
+    if (!cameraPermission?.granted) {
+      const res = await requestCameraPermission();
+      if (!res.granted) {
+        Alert.alert(
+          "صلاحية الكاميرا",
+          "يجب السماح للتطبيق بالوصول للكاميرا حتى تستطيع التقاط صورة البروفايل.",
+        );
         return;
       }
     }
-
-    const result =
-      source === "camera"
-        ? await ImagePicker.launchCameraAsync({
-            mediaTypes: 'images',
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.7,
-          })
-        : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: 'images',
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.7,
-          });
-
-    if (result.canceled || !result.assets[0].uri) return;
-    await uploadPhoto(result.assets[0].uri);
+    setShowCamera(true);
   };
 
-  const uploadPhoto = async (uri: string) => {
-    if (!user) return;
+  const closeCamera = () => {
+    if (!capturingPhoto) setShowCamera(false);
+  };
+
+  const takePhoto = async () => {
+    if (!cameraRef.current || capturingPhoto) return;
+    try {
+      setCapturingPhoto(true);
+      const result = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+      if (!result?.uri) return;
+      setShowCamera(false);
+      await uploadPhoto(result.uri);
+    } catch (error: any) {
+      console.log("Upload failed full error:", JSON.stringify(error, null, 2));
+      console.log("Error message:", error?.message);
+      console.log("Error code:", error?.code);
+      console.log("Server response:", error?.serverResponse);
+      setPhoto(null);
+      Alert.alert("خطأ", "فشل رفع الصورة، حاول مجدداً");
+    } finally {
+      setCapturingPhoto(false);
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "صلاحية المعرض",
+        "يجب السماح للتطبيق بالوصول لمعرض الصور حتى تستطيع اختيار صورة البروفايل.",
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    const asset = result.assets?.[0];
+    if (result.canceled || !asset?.uri) return;
+    await uploadPhoto(asset.uri, asset.mimeType);
+  };
+
+  const uploadPhoto = async (uri: string, mimeType = "image/jpeg") => {
+    if (!user) {
+      Alert.alert("خطأ", "يجب تسجيل الدخول قبل رفع صورة البروفايل");
+      return;
+    }
     try {
       setUploadingPhoto(true);
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const storageRef = ref(storage, `profilePhotos/${user.uid}.jpg`);
-      await uploadBytes(storageRef, blob);
+      setPhoto(uri);
+
+      const extension = mimeType.includes("png") ? "png" : "jpg";
+      const storagePath = `report-media/${user.uid}/profile/avatar-${Date.now()}.${extension}`;
+      const storageRef = ref(storage, storagePath);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = () => resolve(xhr.response);
+        xhr.onerror = () => reject(new Error("Failed to read file"));
+        xhr.responseType = "blob";
+        xhr.open("GET", uri, true);
+        xhr.send();
+      });
+
+      await uploadBytes(storageRef, blob, { contentType: mimeType });
       const downloadURL = await getDownloadURL(storageRef);
       await updateProfile(user, { photoURL: downloadURL });
       setUser({ ...user, photoURL: downloadURL } as User);
-    } catch (e) {
+      setPhoto(null);
+    } catch (error) {
+      console.log("Upload failed:", error);
+      setPhoto(null);
       Alert.alert("خطأ", "فشل رفع الصورة، حاول مجدداً");
     } finally {
       setUploadingPhoto(false);
@@ -138,7 +191,6 @@ export default function Settings() {
         onPress: async () => {
           await signOut(auth);
           await clearUserLocally();
-          console.log("🚪 تم تسجيل الخروج وحذف البيانات المحلية");
           router.replace("/auth/login");
         },
       },
@@ -147,8 +199,8 @@ export default function Settings() {
 
   const fullName = user?.displayName ?? "مستخدم";
   const email = user?.email ?? "";
-  const uid = user?.uid?.slice(0, 8) ?? "—";
-  const photoURL = user?.photoURL;
+  const uid = user?.uid?.slice(0, 8) ?? "-";
+  const photoURL = photo ?? user?.photoURL;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -162,16 +214,18 @@ export default function Settings() {
             style={styles.avatarWrapper}
             onPress={handlePhotoOptions}
             activeOpacity={0.8}
+            disabled={uploadingPhoto}
           >
-            {uploadingPhoto ? (
-              <View style={styles.avatar}>
-                <ActivityIndicator color={COLORS.primary} />
-              </View>
-            ) : photoURL ? (
+            {photoURL ? (
               <Image source={{ uri: photoURL }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{fullName.charAt(0)}</Text>
+              </View>
+            )}
+            {uploadingPhoto && (
+              <View style={styles.avatarOverlay}>
+                <ActivityIndicator color="#fff" />
               </View>
             )}
             <View style={styles.cameraIcon}>
@@ -202,7 +256,7 @@ export default function Settings() {
             icon="id-card"
             iconBg="#E3F2FD"
             iconColor="#1565C0"
-            title="معرّف المستخدم"
+            title="معرف المستخدم"
             subtitle={uid}
           />
         </View>
@@ -331,6 +385,48 @@ export default function Settings() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={showCamera}
+        animationType="slide"
+        onRequestClose={closeCamera}
+      >
+        <SafeAreaView style={cameraModal.container}>
+          <CameraView
+            ref={cameraRef}
+            style={cameraModal.camera}
+            facing="front"
+          />
+          <View style={cameraModal.controls} pointerEvents="box-none">
+            <View style={cameraModal.topBar}>
+              <TouchableOpacity
+                style={cameraModal.iconButton}
+                onPress={closeCamera}
+                disabled={capturingPhoto}
+              >
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={cameraModal.bottomBar}>
+              <TouchableOpacity
+                style={[
+                  cameraModal.captureButton,
+                  capturingPhoto && cameraModal.disabledButton,
+                ]}
+                onPress={takePhoto}
+                disabled={capturingPhoto}
+                activeOpacity={0.8}
+              >
+                {capturingPhoto ? (
+                  <ActivityIndicator color={COLORS.primary} />
+                ) : (
+                  <View style={cameraModal.captureInner} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -347,7 +443,11 @@ function SectionHeader({ title, icon }: { title: string; icon: string }) {
 function Divider() {
   return (
     <View
-      style={{ height: 1, backgroundColor: COLORS.border, marginHorizontal: 16 }}
+      style={{
+        height: 1,
+        backgroundColor: COLORS.border,
+        marginHorizontal: 16,
+      }}
     />
   );
 }
@@ -366,8 +466,16 @@ interface SettingRowProps {
 }
 
 function SettingRow({
-  icon, iconBg, iconColor, title, subtitle,
-  onPress, showChevron, toggle, toggleValue, onToggle,
+  icon,
+  iconBg,
+  iconColor,
+  title,
+  subtitle,
+  onPress,
+  showChevron,
+  toggle,
+  toggleValue,
+  onToggle,
 }: SettingRowProps) {
   return (
     <TouchableOpacity
@@ -384,7 +492,12 @@ function SettingRow({
         {subtitle && <Text style={row.subtitle}>{subtitle}</Text>}
       </View>
       {showChevron && (
-        <Ionicons name="chevron-back" size={18} color={COLORS.textSecondary} style={{ opacity: 0.5 }} />
+        <Ionicons
+          name="chevron-back"
+          size={18}
+          color={COLORS.textSecondary}
+          style={{ opacity: 0.5 }}
+        />
       )}
       {toggle && (
         <Switch
@@ -400,58 +513,143 @@ function SettingRow({
 
 const section = StyleSheet.create({
   row: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    marginTop: 28, marginBottom: 10, paddingHorizontal: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 28,
+    marginBottom: 10,
+    paddingHorizontal: 4,
   },
   text: {
-    fontSize: 13, fontWeight: "800", color: COLORS.textSecondary,
-    textTransform: "uppercase", letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: "800",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0,
   },
 });
 
 const row = StyleSheet.create({
   container: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 14, gap: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
   },
   iconWrapper: {
-    width: 36, height: 36, borderRadius: 10,
-    justifyContent: "center", alignItems: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   textBlock: { flex: 1 },
-  title: { fontSize: 15, fontWeight: "700", color: COLORS.textPrimary, textAlign: "right" },
-  subtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: "500", marginTop: 2, textAlign: "right" },
+  title: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    textAlign: "right",
+  },
+  subtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+    marginTop: 2,
+    textAlign: "right",
+  },
 });
 
 const modal = StyleSheet.create({
   overlay: {
-    flex: 1, backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center", alignItems: "center", padding: 24,
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
   },
   card: {
-    width: "100%", backgroundColor: "#fff",
-    borderRadius: 24, padding: 24, gap: 16,
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    padding: 24,
+    gap: 16,
   },
   title: {
-    fontSize: 18, fontWeight: "900",
-    color: COLORS.textPrimary, textAlign: "center",
+    fontSize: 18,
+    fontWeight: "900",
+    color: COLORS.textPrimary,
+    textAlign: "center",
   },
   input: {
-    borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14,
-    paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: 15, color: COLORS.textPrimary,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: COLORS.textPrimary,
   },
   actions: { flexDirection: "row", gap: 10 },
   cancelBtn: {
-    flex: 1, paddingVertical: 13, borderRadius: 14,
-    borderWidth: 1.5, borderColor: COLORS.border, alignItems: "center",
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    alignItems: "center",
   },
   cancelText: { fontSize: 15, fontWeight: "700", color: COLORS.textSecondary },
   saveBtn: {
-    flex: 1, paddingVertical: 13, borderRadius: 14,
-    backgroundColor: COLORS.primary, alignItems: "center",
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
   },
   saveText: { fontSize: 15, fontWeight: "800", color: "#fff" },
+});
+
+const cameraModal = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#000" },
+  camera: { ...StyleSheet.absoluteFillObject },
+  controls: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "space-between",
+  },
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    padding: 18,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomBar: { alignItems: "center", paddingBottom: 34 },
+  captureButton: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 4,
+    borderColor: "rgba(255,255,255,0.45)",
+  },
+  captureInner: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  disabledButton: { opacity: 0.7 },
 });
 
 const styles = StyleSheet.create({
@@ -459,49 +657,102 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 20, width: "100%", maxWidth: 450, alignSelf: "center" },
   profileCard: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: COLORS.surface, borderRadius: 24,
-    padding: 20, marginTop: 10, gap: 14,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06, shadowRadius: 12, elevation: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: 24,
+    padding: 20,
+    marginTop: 10,
+    gap: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   avatarWrapper: { position: "relative" },
   avatar: {
-    width: 56, height: 56, borderRadius: 28,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: COLORS.primaryLight,
-    justifyContent: "center", alignItems: "center",
+    justifyContent: "center",
+    alignItems: "center",
   },
   avatarImage: { width: 56, height: 56, borderRadius: 28 },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 28,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   avatarText: { fontSize: 22, fontWeight: "900", color: COLORS.primary },
   cameraIcon: {
-    position: "absolute", bottom: 0, right: 0,
-    width: 20, height: 20, borderRadius: 10,
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.primary,
-    justifyContent: "center", alignItems: "center",
-    borderWidth: 1.5, borderColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#fff",
   },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 17, fontWeight: "900", color: COLORS.textPrimary, textAlign: "right" },
-  profileEmail: { fontSize: 12, color: COLORS.textSecondary, fontWeight: "500", marginTop: 2, textAlign: "right" },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: COLORS.textPrimary,
+    textAlign: "right",
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+    marginTop: 2,
+    textAlign: "right",
+  },
   roleBadge: {
-    alignSelf: "flex-end", backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginTop: 6,
+    alignSelf: "flex-end",
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+    marginTop: 6,
   },
   roleBadgeText: { fontSize: 11, fontWeight: "800", color: COLORS.primary },
   editBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primaryLight,
-    justifyContent: "center", alignItems: "center",
+    justifyContent: "center",
+    alignItems: "center",
   },
   group: {
-    backgroundColor: COLORS.surface, borderRadius: 20, overflow: "hidden",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04, shadowRadius: 10, elevation: 2,
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
   logoutBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, marginTop: 32, paddingVertical: 16, borderRadius: 20,
-    borderWidth: 1.5, borderColor: COLORS.primaryLight, backgroundColor: "#FFF5F5",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 32,
+    paddingVertical: 16,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryLight,
+    backgroundColor: "#FFF5F5",
   },
   logoutText: { fontSize: 16, fontWeight: "800", color: COLORS.primary },
 });
