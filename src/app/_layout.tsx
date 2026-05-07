@@ -1,6 +1,6 @@
 import { auth, db } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
-import { getUserLocally } from "@/services/authService";
+import { clearUserLocally, getUserLocally } from "@/services/authService";
 import { router, Slot, useRootNavigationState } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -31,7 +31,8 @@ export default function RootLayout() {
         try {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
           if (snap.exists()) {
-            setRole(snap.data().role ?? null);
+            const rawRole = snap.data().role;
+            setRole(typeof rawRole === "string" ? rawRole.trim() : null);
           }
         } catch {}
         setUser(firebaseUser);
@@ -48,31 +49,29 @@ export default function RootLayout() {
   useEffect(() => {
     if (!navigationState?.key) return;
 
-    // إذا كان هناك مستخدم محلي، توجيه فوراً
-    if (localUser) {
-      console.log("🔄 توجيه من البيانات المحلية:", localUser.email);
-      if (localUser.role === "security" || localUser.role === "admin") {
-        router.replace("/(tabs)/dashboard");
-      } else {
-        router.replace("/(tabs)/home");
-      }
-      return;
-    }
+    (async () => {
+      // انتظر لحد ما user من Firebase يكون جاهز (حتى لو فيه بيانات محلية)
+      if (user === undefined) return;
 
-    // إلا إذا كان user من Firebase جاهز
-    if (user === undefined) return;
-
-    if (user) {
-      console.log("🔄 توجيه من Firebase Auth:", user.email);
-      if (role === "security" || role === "admin") {
-        router.replace("/(tabs)/dashboard");
+      if (user) {
+        console.log("🔄 توجيه من Firebase Auth:", user.email);
+        const localRole =
+          typeof localUser?.role === "string" ? localUser.role.trim() : null;
+        const effectiveRole = (role ?? localRole ?? null)?.trim?.() ?? null;
+        if (effectiveRole === "security" || effectiveRole === "admin") {
+          router.replace("/(tabs)/dashboard");
+        } else {
+          router.replace("/(tabs)/home");
+        }
       } else {
-        router.replace("/(tabs)/home");
+        if (localUser) {
+          await clearUserLocally();
+          setLocalUser(null);
+        }
+        console.log("🔄 لا توجد جلسة، توجيه للـ Login");
+        router.replace("/auth/login");
       }
-    } else {
-      console.log("🔄 لا توجد جلسة، توجيه للـ Login");
-      router.replace("/auth/login");
-    }
+    })();
   }, [user, role, navigationState?.key, localUser]);
 
   // شاشة تحميل لحد ما نعرف حالة الـ auth
