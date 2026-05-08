@@ -1,11 +1,60 @@
 import { COLORS } from "@/constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import "react-native-gesture-handler";
+import { useEffect, useState } from "react";
 
+import { auth, db } from "@/config/firebaseConfig";
+import { getUserLocally } from "@/services/authService";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+const DASHBOARD_ROLES = new Set(["admin", "security", "responder"]);
+
+function canAccessDashboard(role: string | null | undefined) {
+  return typeof role === "string" && DASHBOARD_ROLES.has(role.trim());
+}
+
 export default function TabLayout() {
+  const [showDashboard, setShowDashboard] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!active) return;
+
+      if (!user) {
+        setShowDashboard(false);
+        return;
+      }
+
+      const local = await getUserLocally();
+      const localRole =
+        typeof local?.role === "string" ? local.role.trim() : null;
+      let remoteRole: string | null = null;
+
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const rawRole = snap.data().role;
+          remoteRole = typeof rawRole === "string" ? rawRole.trim() : null;
+        }
+      } catch {
+        remoteRole = null;
+      }
+
+      if (active) {
+        setShowDashboard(canAccessDashboard(remoteRole ?? localRole));
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Tabs
@@ -45,6 +94,7 @@ export default function TabLayout() {
           name="dashboard"
           options={{
             title: "القيادة",
+            ...(showDashboard ? {} : { href: null }),
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "stats-chart" : "stats-chart-outline"}

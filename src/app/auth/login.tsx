@@ -8,6 +8,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -52,6 +53,7 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
+    if (loading) return;
     if (!validate()) return;
 
     setLoading(true);
@@ -133,6 +135,7 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={setEmail}
                 error={errors.email}
+                editable={!loading}
               />
 
               <CustomInput
@@ -143,10 +146,19 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 error={errors.password}
+                editable={!loading}
               />
 
-              <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                <Text style={styles.buttonText}>Login</Text>
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.surface} size="small" />
+                ) : (
+                  <Text style={styles.buttonText}>Login</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity>
@@ -199,6 +211,9 @@ const styles = StyleSheet.create({
     paddingVertical: Theme.spacing.md,
     alignItems: "center",
     marginTop: Theme.spacing.sm,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: COLORS.surface,

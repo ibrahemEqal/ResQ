@@ -1,20 +1,25 @@
 import { auth, db } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
-import { clearUserLocally, getUserLocally } from "@/services/authService";
-import { router, Slot, useRootNavigationState } from "expo-router";
+import {
+  clearUserLocally,
+  getUserLocally,
+  StoredUser,
+} from "@/services/authService";
+import { router, Slot, usePathname, useRootNavigationState } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-gesture-handler";
 export default function RootLayout() {
-  // undefined = لسا ما عرفنا، null = مو مسجّل، User = مسجّل
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [role, setRole] = useState<string | null>(null);
-  const [localUser, setLocalUser] = useState<any>(null);
+  const [localUser, setLocalUser] = useState<StoredUser | null | undefined>(
+    undefined,
+  );
   const navigationState = useRootNavigationState();
+  const pathname = usePathname();
 
-  // تحقق من البيانات المحلية أولاً
   useEffect(() => {
     const checkLocalUser = async () => {
       const storedUser = await getUserLocally();
@@ -24,7 +29,6 @@ export default function RootLayout() {
     checkLocalUser();
   }, []);
 
-  // راقب حالة الـ auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -45,37 +49,43 @@ export default function RootLayout() {
     return () => unsubscribe();
   }, []);
 
-  // انتظر لحد ما الـ navigation يصير جاهز والـ auth يرجع
   useEffect(() => {
     if (!navigationState?.key) return;
+    if (localUser === undefined) return;
 
     (async () => {
-      // انتظر لحد ما user من Firebase يكون جاهز (حتى لو فيه بيانات محلية)
       if (user === undefined) return;
+
+      const isAuthRoute = pathname.startsWith("/auth");
+      const isIndexRoute = pathname === "/";
 
       if (user) {
         console.log("🔄 توجيه من Firebase Auth:", user.email);
         const localRole =
           typeof localUser?.role === "string" ? localUser.role.trim() : null;
         const effectiveRole = (role ?? localRole ?? null)?.trim?.() ?? null;
-        if (effectiveRole === "security" || effectiveRole === "admin") {
-          router.replace("/(tabs)/dashboard");
-        } else {
-          router.replace("/(tabs)/home");
+        const target =
+          effectiveRole === "security" || effectiveRole === "admin"
+            ? "/(tabs)/dashboard"
+            : "/(tabs)/home";
+
+        if (isAuthRoute || isIndexRoute) {
+          router.replace(target);
         }
       } else {
         if (localUser) {
           await clearUserLocally();
           setLocalUser(null);
         }
-        console.log("🔄 لا توجد جلسة، توجيه للـ Login");
-        router.replace("/auth/login");
+        if (!isAuthRoute) {
+          console.log("🔄 لا توجد جلسة، توجيه للـ Login");
+          router.replace("/auth/login");
+        }
       }
     })();
-  }, [user, role, navigationState?.key, localUser]);
+  }, [user, role, navigationState?.key, localUser, pathname]);
 
-  // شاشة تحميل لحد ما نعرف حالة الـ auth
-  if ((user === undefined && !localUser) || !navigationState?.key) {
+  if (user === undefined || localUser === undefined || !navigationState?.key) {
     return (
       <View
         style={{

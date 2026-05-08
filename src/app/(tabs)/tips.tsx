@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { MOCK_TIPS } from '../../data/mockData';
-const { width } = Dimensions.get('window');
 
 const CATEGORIES = ['الكل', 'Fire', 'Fainting', 'Security', 'Electrical'];
 
@@ -20,7 +19,7 @@ export default function Tips() {
             Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true })
         ]).start();
-    }, []);
+    }, [fadeAnim, slideAnim]);
 
     const filteredTips = activeCategory === 'الكل'
         ? MOCK_TIPS

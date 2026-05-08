@@ -1,8 +1,92 @@
 rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function hasRole(role) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function canManageIncidents() {
+      return hasRole("admin") || hasRole("security") || hasRole("responder");
+    }
+
+    function userFieldsAreValid() {
+      return request.resource.data.keys().hasOnly([
+        "uid",
+        "fullName",
+        "email",
+        "role",
+        "createdAt",
+        "universityId"
+      ]);
+    }
+
+    function reportFieldsAreValid() {
+      return request.resource.data.keys().hasOnly([
+        "id",
+        "userId",
+        "type",
+        "description",
+        "location",
+        "latitude",
+        "longitude",
+        "imageUrl",
+        "priority",
+        "status",
+        "createdAt",
+        "assignedResponder",
+        "timeline"
+      ]);
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId)
+        && userFieldsAreValid()
+        && request.resource.data.uid == userId
+        && request.resource.data.role == "student";
+
+      allow read: if isOwner(userId) || canManageIncidents();
+
+      allow update: if canManageIncidents()
+        || (
+          isOwner(userId)
+          && userFieldsAreValid()
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.role == resource.data.role
+        );
+
+      allow delete: if hasRole("admin");
+    }
+
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && reportFieldsAreValid()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == "Open";
+
+      allow read: if canManageIncidents()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow update: if canManageIncidents()
+        || (
+          signedIn()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.status == resource.data.status
+        );
+
+      allow delete: if canManageIncidents()
+        || (signedIn() && resource.data.userId == request.auth.uid);
     }
   }
 }

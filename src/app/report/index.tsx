@@ -57,7 +57,7 @@ export default function ReportScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

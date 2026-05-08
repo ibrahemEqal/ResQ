@@ -3,16 +3,70 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useRef } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { StatBox } from '@/components/StatBox';
+import { auth, db } from '@/config/firebaseConfig';
 import { useDashboard } from '@/lib/incident/useDashboard';
+import { getUserLocally } from '@/services/authService';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+
+const DASHBOARD_ROLES = new Set(['admin', 'security', 'responder']);
+
+function canAccessDashboard(role: string | null | undefined) {
+  return typeof role === 'string' && DASHBOARD_ROLES.has(role.trim());
+}
 
 export default function Dashboard() {
-  const { stats, recentLogs } = useDashboard();
+  const [access, setAccess] = React.useState<'checking' | 'allowed' | 'denied'>('checking');
+  const { stats, recentLogs, loading, error } = useDashboard(access === 'allowed');
 
   const radarAnim1 = useRef(new Animated.Value(0)).current;
   const radarAnim2 = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    let active = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!active) return;
+
+      if (!currentUser) {
+        setAccess('denied');
+        router.replace('/auth/login');
+        return;
+      }
+
+      const local = await getUserLocally();
+      const localRole =
+        typeof local?.role === 'string' ? local.role.trim() : null;
+      let remoteRole: string | null = null;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const rawRole = userDoc.data().role;
+          remoteRole = typeof rawRole === 'string' ? rawRole.trim() : null;
+        }
+      } catch {
+        remoteRole = null;
+      }
+
+      if (!active) return;
+
+      if (canAccessDashboard(remoteRole ?? localRole)) {
+        setAccess('allowed');
+      } else {
+        setAccess('denied');
+        router.replace('/(tabs)/home');
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   React.useEffect(() => {
     const createRadarWave = (anim: Animated.Value, delay: number) => {
@@ -25,10 +79,18 @@ export default function Dashboard() {
     };
     createRadarWave(radarAnim1, 0).start();
     createRadarWave(radarAnim2, 1500).start();
-  }, []);
+  }, [radarAnim1, radarAnim2]);
 
   const chartData = [4, 7, 2, 9, 3, 5, stats.critical + stats.open];
   const maxChartValue = Math.max(...chartData, 1);
+
+  if (access !== 'allowed') {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color="#00F0FF" size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -46,6 +108,8 @@ export default function Dashboard() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 50 }}>
+        {loading && <ActivityIndicator color="#00F0FF" style={styles.dashboardLoader} />}
+        {error && <Text style={styles.errorText}>{error}</Text>}
 
         {/* Radar */}
         <BlurView intensity={20} tint="dark" style={styles.radarCard}>
@@ -131,6 +195,9 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#050B14' },
+  loadingContainer: { flex: 1, backgroundColor: '#050B14', alignItems: 'center', justifyContent: 'center' },
+  dashboardLoader: { marginTop: 20 },
+  errorText: { color: '#FFB800', fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 16 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
     paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20,

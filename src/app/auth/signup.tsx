@@ -8,6 +8,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -74,6 +75,7 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
+    if (loading) return;
     if (validate()) {
       setLoading(true);
       try {
@@ -140,6 +142,7 @@ export default function SignupScreen() {
               value={fullName}
               onChangeText={setFullName}
               error={errors.fullName}
+              editable={!loading}
             />
 
             <CustomInput
@@ -151,6 +154,7 @@ export default function SignupScreen() {
               value={email}
               onChangeText={setEmail}
               error={errors.email}
+              editable={!loading}
             />
 
             <CustomInput
@@ -161,6 +165,7 @@ export default function SignupScreen() {
               value={password}
               onChangeText={setPassword}
               error={errors.password}
+              editable={!loading}
             />
 
             <CustomInput
@@ -171,10 +176,19 @@ export default function SignupScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               error={errors.confirmPassword}
+              editable={!loading}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleSignup}>
-              <Text style={styles.buttonText}>Sign Up</Text>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSignup}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.surface} size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -216,6 +230,9 @@ const styles = StyleSheet.create({
     paddingVertical: Theme.spacing.md,
     alignItems: "center",
     marginTop: Theme.spacing.sm,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: COLORS.surface,

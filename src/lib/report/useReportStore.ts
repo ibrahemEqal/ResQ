@@ -113,6 +113,12 @@ export function useReportStore(): ReportStore {
       return;
     }
 
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+      setError("يجب تسجيل الدخول أولاً لإرسال البلاغ.");
+      return;
+    }
+
     Animated.sequence([
       Animated.timing(submitScale, {
         toValue: 0.94,
@@ -129,14 +135,21 @@ export function useReportStore(): ReportStore {
     setSubmitting(true);
     clearError();
     try {
-      await submitReport({
-        userId: auth.currentUser?.uid ?? "unknown",
+      const result = await submitReport({
+        userId: uid,
         type: selectedCategory,
         description: description.trim() || "لا يوجد وصف",
         location: selectedCollege ?? "غير محدد",
         ...(priority && { priority }),
         ...(mediaFile?.url && { imageUrl: mediaFile.url }),
       });
+
+      if (!result.success) {
+        setError(
+          "فشل إرسال البلاغ. تحقق من اتصالك بالإنترنت وحاول مجدداً.",
+        );
+        return;
+      }
 
       Alert.alert(
         "تم الإرسال ✅",

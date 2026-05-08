@@ -14,11 +14,6 @@ interface MapViewProps {
   onMarkerPress: (id: string | null) => void;
   onResolve: (id: string) => void;
 }
-const ALERT_PINS = [
-  { bid: 8,  cx: 224, cy: 149, color: '#FF3B30' }, 
-  { bid: 20, cx: 142, cy: 110, color: '#FF9500' }, 
-  { bid: 28, cx: 63,  cy: 112, color: '#007AFF' }, 
-];
 export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve }: MapViewProps) {
   const selectedReport = reports.find((r) => r.id === expandedId) ?? null;
   const BUILDINGS = [
