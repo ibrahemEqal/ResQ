@@ -56,32 +56,33 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
+      const normalizedEmail = email.trim();
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        email,
+        normalizedEmail,
         password,
       );
       const userUid = userCredential.user.uid;
 
-      let userRole = null;
+      let userRole: string | null = "student";
       try {
         const userDocRef = doc(db, "users", userUid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          userRole = userData.role;
+          userRole =
+            typeof userData.role === "string" ? userData.role.trim() : null;
         }
       } catch {
-        // Firestore فشل — تجاهل وروح على home
+        // Firestore فشل — نخلي role الافتراضي student
       }
 
-      // حفظ بيانات المستخدم محلياً
       await saveUserLocally({
         uid: userUid,
-        email: userCredential.user.email || "",
+        email: (userCredential.user.email || normalizedEmail).trim(),
         fullName: userCredential.user.displayName || "",
-        role: userRole,
+        role: typeof userRole === "string" ? userRole.trim() : undefined,
       });
       console.log("💾 تم حفظ بيانات المستخدم محلياً بنجاح:", {
         email: userCredential.user.email,
