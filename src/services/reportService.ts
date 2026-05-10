@@ -1,4 +1,4 @@
-import { db } from "@/config/firebaseConfig";
+import { auth, db } from "@/config/firebaseConfig";
 import {
   addDoc,
   collection,
@@ -10,6 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { Report } from "../types";
+import { currentUserIsAdmin } from "./roleService";
 
 const REPORTS_COLLECTION = "reports";
 
@@ -50,7 +51,17 @@ export const getReportsByUser = async (userId: string): Promise<Report[]> => {
 
 export const getReports = async (): Promise<Report[]> => {
   try {
-    const querySnapshot = await getDocs(collection(db, REPORTS_COLLECTION));
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    const reportsQuery = (await currentUserIsAdmin())
+      ? collection(db, REPORTS_COLLECTION)
+      : query(
+          collection(db, REPORTS_COLLECTION),
+          where("userId", "==", user.uid),
+        );
+
+    const querySnapshot = await getDocs(reportsQuery);
     const reports: Report[] = [];
     querySnapshot.forEach((doc) => {
       reports.push({ id: doc.id, ...doc.data() } as Report);
@@ -79,11 +90,13 @@ export const getReportById = async (id: string): Promise<Report | null> => {
 
 export const markReportAsResolved = async (id: string): Promise<boolean> => {
   try {
+    if (!(await currentUserIsAdmin())) return false;
+
     const docRef = doc(db, REPORTS_COLLECTION, id);
     await updateDoc(docRef, { status: "Resolved" });
     return true;
   } catch (error) {
-    console.error("Error updating report status: ", error);
+    console.log("Error updating report status: ", error);
     return false;
   }
 };

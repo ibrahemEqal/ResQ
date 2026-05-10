@@ -6,17 +6,10 @@ import React, { useRef } from 'react';
 import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { StatBox } from '@/components/StatBox';
-import { auth, db } from '@/config/firebaseConfig';
+import { auth } from '@/config/firebaseConfig';
 import { useDashboard } from '@/lib/incident/useDashboard';
-import { getUserLocally } from '@/services/authService';
+import { canAccessDashboard, getRoleForUser } from '@/services/roleService';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-
-const DASHBOARD_ROLES = new Set(['admin', 'security', 'responder']);
-
-function canAccessDashboard(role: string | null | undefined) {
-  return typeof role === 'string' && DASHBOARD_ROLES.has(role.trim());
-}
 
 export default function Dashboard() {
   const [access, setAccess] = React.useState<'checking' | 'allowed' | 'denied'>('checking');
@@ -37,24 +30,16 @@ export default function Dashboard() {
         return;
       }
 
-      const local = await getUserLocally();
-      const localRole =
-        typeof local?.role === 'string' ? local.role.trim() : null;
-      let remoteRole: string | null = null;
-
+      let role: string | null = null;
       try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          const rawRole = userDoc.data().role;
-          remoteRole = typeof rawRole === 'string' ? rawRole.trim() : null;
-        }
+        role = await getRoleForUser(currentUser);
       } catch {
-        remoteRole = null;
+        role = null;
       }
 
       if (!active) return;
 
-      if (canAccessDashboard(remoteRole ?? localRole)) {
+      if (canAccessDashboard(role, currentUser.email)) {
         setAccess('allowed');
       } else {
         setAccess('denied');
@@ -111,7 +96,6 @@ export default function Dashboard() {
         {loading && <ActivityIndicator color="#00F0FF" style={styles.dashboardLoader} />}
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        {/* Radar */}
         <BlurView intensity={20} tint="dark" style={styles.radarCard}>
           <View style={styles.radarHeader}>
             <Text style={styles.sectionTitle}>الرادار المباشر</Text>
@@ -136,7 +120,6 @@ export default function Dashboard() {
           <Text style={styles.radarStatusText}>تم اكتشاف {stats.critical} حالات حرجة</Text>
         </BlurView>
 
-        {/* Stats */}
         <View style={styles.statsGrid}>
           <StatBox title="حالات حرجة" count={stats.critical} color="#FF2A2A" icon="warning" trend={`+${stats.critical}`} />
           <StatBox title="قيد المعالجة" count={stats.open} color="#FFB800" icon="time" trend="نشط" />
@@ -144,7 +127,6 @@ export default function Dashboard() {
           <StatBox title="فرق الاستجابة" count={4} color="#00F0FF" icon="people" trend="نشط" />
         </View>
 
-        {/* Chart */}
         <BlurView intensity={20} tint="dark" style={styles.chartCard}>
           <Text style={styles.sectionTitle}>معدل البلاغات (آخر 7 أيام)</Text>
           <View style={styles.chartContainer}>
@@ -168,7 +150,6 @@ export default function Dashboard() {
           </View>
         </BlurView>
 
-        {/* Logs */}
         <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 15 }]}>سجل العمليات</Text>
         {recentLogs.map((report) => (
           <View key={report.id} style={styles.logItem}>

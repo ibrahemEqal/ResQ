@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { auth, db } from "@/config/firebaseConfig";
 import { clearUserLocally, getUserLocally } from "@/services/authService";
+import { getRoleForUser } from "@/services/roleService";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -27,12 +28,12 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // اعرض الاسم من التخزين المحلي مباشرة (حتى لو Firestore رفض)
         const local = await getUserLocally();
         if (local?.fullName && typeof local.fullName === "string") {
           const safeName = local.fullName.trim();
           if (safeName) setUserName(safeName);
         }
+        setUserRole(await getRoleForUser(user));
 
         try {
           const docRef = doc(db, "users", user.uid);
@@ -46,7 +47,6 @@ export default function Home() {
             setUserName("مستخدم");
           }
         } catch (error) {
-          // إذا ما في صلاحيات، نخلي الاسم من المحلي/الافتراضي بدون إزعاج
           const message =
             typeof (error as any)?.message === "string"
               ? (error as any).message
@@ -181,7 +181,7 @@ export default function Home() {
             <Text style={styles.cardDesc}>كيف تتصرف؟</Text>
           </TouchableOpacity>
 
-          {(userRole === "security" || userRole === "admin") && (
+          {userRole === "admin" && (
             <TouchableOpacity
               style={styles.premiumCard}
               onPress={() => router.push("/(tabs)/dashboard")}

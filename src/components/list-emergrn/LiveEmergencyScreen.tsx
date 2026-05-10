@@ -99,6 +99,7 @@ export function LiveEmergencyScreen() {
           onRefresh={store.handleRefresh}
           expandedId={store.expandedId}
           onCardPress={(id: string | null) => store.setExpandedId(id)}
+          canResolveReports={store.canResolveReports}
           onResolve={store.resolveReport}
         />
       ) : (
@@ -106,6 +107,7 @@ export function LiveEmergencyScreen() {
           reports={store.filteredReports}
           expandedId={store.expandedId}
           onMarkerPress={store.setExpandedId}
+          canResolveReports={store.canResolveReports}
           onResolve={store.resolveReport}
         />
       )}

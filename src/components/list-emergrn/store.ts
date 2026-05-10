@@ -1,5 +1,8 @@
 import { getReports, markReportAsResolved } from '@/services/reportService';
+import { auth } from '@/config/firebaseConfig';
+import { currentUserIsAdmin } from '@/services/roleService';
 import { EmergencyType, Report, ReportStatus } from '@/types';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { useEffect, useMemo, useState } from 'react';
 export type FilterType   = 'All' | EmergencyType;
 export type FilterStatus = 'All' | ReportStatus;
@@ -63,10 +66,21 @@ export interface LiveEmergencyStore {
   setSelectedStatus:(s: FilterStatus) => void;
   expandedId:       string | null;
   setExpandedId:    (id: string | null) => void;
+  canResolveReports:boolean;
   loadReports:      () => Promise<void>;
   handleRefresh:    () => void;
   resolveReport:    (id: string) => Promise<void>;
 }
+
+function getReadyUser() {
+  return new Promise<User | null>((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
 export function useLiveEmergencyStore(): LiveEmergencyStore {
   const [reports,        setReports]        = useState<Report[]>([]);
   const [loading,        setLoading]        = useState(true);
@@ -77,7 +91,17 @@ export function useLiveEmergencyStore(): LiveEmergencyStore {
   const [selectedType,   setSelectedType]   = useState<FilterType>('All');
   const [selectedStatus, setSelectedStatus] = useState<FilterStatus>('All');
   const [expandedId,     setExpandedId]     = useState<string | null>(null);
+  const [canResolveReports, setCanResolveReports] = useState(false);
   const loadReports = async () => {
+    const currentUser = await getReadyUser();
+
+    if (!currentUser) {
+      setReports([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       setError(null);
       const data = await getReports();
@@ -94,6 +118,11 @@ export function useLiveEmergencyStore(): LiveEmergencyStore {
     loadReports();
   };
   const resolveReport = async (id: string) => {
+    if (!canResolveReports) {
+      alert("هذه الصلاحية متاحة للأدمن فقط.");
+      return;
+    }
+
     const success = await markReportAsResolved(id);
     if (success) {
       loadReports(); 
@@ -105,6 +134,24 @@ export function useLiveEmergencyStore(): LiveEmergencyStore {
     loadReports();
     const interval = setInterval(loadReports, 30_000);
     return () => clearInterval(interval); 
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        if (active) setCanResolveReports(false);
+        return;
+      }
+
+      if (active) setCanResolveReports(await currentUserIsAdmin());
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
   const filteredReports = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -135,6 +182,7 @@ export function useLiveEmergencyStore(): LiveEmergencyStore {
     setSelectedStatus,
     expandedId,
     setExpandedId,
+    canResolveReports,
     loadReports,
     handleRefresh,
     resolveReport,

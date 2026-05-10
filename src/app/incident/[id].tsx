@@ -20,6 +20,7 @@ export default function IncidentDetailsPage() {
     handleAssignResponder,
     handleUpdateStatus,
     loading,
+    canResolve,
   } = useIncidentDetails(id);
 
   if (loading) {
@@ -57,10 +58,13 @@ export default function IncidentDetailsPage() {
 
       <TimelineSection timeline={timeline} />
 
-      <ReportActions
-        onAssignResponder={handleAssignResponder}
-        onUpdateStatus={handleUpdateStatus}
-      />
+      {canResolve && (
+        <ReportActions
+          canResolve={canResolve}
+          onAssignResponder={handleAssignResponder}
+          onUpdateStatus={handleUpdateStatus}
+        />
+      )}
     </ScrollView>
   );
 }

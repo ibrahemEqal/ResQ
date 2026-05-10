@@ -15,6 +15,7 @@ interface ReportListProps {
   onRefresh: () => void;
   expandedId: string | null;
   onCardPress: (id: string) => void;
+  canResolveReports: boolean;
   onResolve: (id: string) => void;
 }
 export function ReportList({
@@ -23,6 +24,7 @@ export function ReportList({
   onRefresh,
   expandedId,
   onCardPress,
+  canResolveReports,
   onResolve,
 }: ReportListProps) {
   return (
@@ -35,6 +37,7 @@ export function ReportList({
           report={item}
           isExpanded={item.id === expandedId}
           onPress={() => onCardPress(item.id === expandedId ? '' : item.id)}
+          canResolve={canResolveReports}
           onResolve={() => onResolve(item.id)}
         />
       )}

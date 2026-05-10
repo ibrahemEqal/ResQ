@@ -2,14 +2,18 @@ import { styles } from '@/lib/incident/styles';
 import { Pressable, Text, View } from 'react-native';
 
 type ReportActionsProps = {
+  canResolve: boolean;
   onAssignResponder: () => void;
   onUpdateStatus: (status: string) => void;
 };
 
 export function ReportActions({
+  canResolve,
   onAssignResponder,
   onUpdateStatus,
 }: ReportActionsProps) {
+  if (!canResolve) return null;
+
   return (
     <View style={styles.card}>
       <Text style={styles.sectionTitle}>إدارة البلاغ</Text>
@@ -40,12 +44,14 @@ export function ReportActions({
           <Text style={styles.statusButtonText}>قيد المعالجة</Text>
         </Pressable>
 
-        <Pressable
-          style={[styles.statusButton, styles.resolvedButton]}
-          onPress={() => onUpdateStatus('Resolved')}
-        >
-          <Text style={styles.statusButtonText}>تم الحل</Text>
-        </Pressable>
+        {canResolve && (
+          <Pressable
+            style={[styles.statusButton, styles.resolvedButton]}
+            onPress={() => onUpdateStatus('Resolved')}
+          >
+            <Text style={styles.statusButtonText}>تم الحل</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );

@@ -1,6 +1,8 @@
-import { db } from '@/config/firebaseConfig';
+import { auth, db } from '@/config/firebaseConfig';
 import { formatDate } from '@/lib/incident/formatDate';
 import { statusArabic } from '@/lib/incident/statusMap';
+import { currentUserIsAdmin } from '@/services/roleService';
+import { onAuthStateChanged } from 'firebase/auth';
 import { arrayUnion, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
@@ -39,6 +41,25 @@ export function useIncidentDetails(id?: string | string[]) {
   const [assignedResponder, setAssignedResponder] = useState('غير معين');
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canResolve, setCanResolve] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        if (active) setCanResolve(false);
+        return;
+      }
+
+      if (active) setCanResolve(await currentUserIsAdmin());
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const fetchIncident = async () => {
@@ -87,6 +108,10 @@ export function useIncidentDetails(id?: string | string[]) {
 
   const handleAssignResponder = async () => {
     if (!incidentId) return;
+    if (!canResolve) {
+      showAlert('صلاحية مرفوضة', 'إدارة البلاغ متاحة للأدمن فقط');
+      return;
+    }
 
     const responderName = 'فريق الاستجابة';
 
@@ -113,6 +138,10 @@ export function useIncidentDetails(id?: string | string[]) {
 
   const handleUpdateStatus = async (newStatus: string) => {
     if (!incidentId) return;
+    if (!canResolve) {
+      showAlert('صلاحية مرفوضة', 'إدارة البلاغ متاحة للأدمن فقط');
+      return;
+    }
 
     const newTimelineItem: TimelineItem = {
       status: statusArabic[newStatus] || newStatus,
@@ -143,5 +172,6 @@ export function useIncidentDetails(id?: string | string[]) {
     handleAssignResponder,
     handleUpdateStatus,
     loading,
+    canResolve,
   };
 }

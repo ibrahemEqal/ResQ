@@ -1,16 +1,20 @@
-import { auth, storage } from "@/config/firebaseConfig";
+import { auth, db, storage } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
-import { clearUserLocally } from "@/services/authService";
+import { File } from "expo-file-system";
+import { clearUserLocally, getUserLocally, saveUserLocally } from "@/services/authService";
+import { getRoleForUser } from "@/services/roleService";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import {
   onAuthStateChanged,
+  reload,
   signOut,
   updateProfile,
   User,
 } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -30,6 +34,44 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const APP_VERSION = "1.0.0";
 
+function getImageMimeType(uri: string, mimeType?: string | null) {
+  if (mimeType?.startsWith("image/")) return mimeType;
+  return uri.toLowerCase().includes(".png") ? "image/png" : "image/jpeg";
+}
+
+function getImageExtension(mimeType: string) {
+  return mimeType.includes("png") ? "png" : "jpg";
+}
+
+async function getImageBlob(uri: string) {
+  if (
+    uri.startsWith("data:") ||
+    uri.startsWith("blob:") ||
+    uri.startsWith("http://") ||
+    uri.startsWith("https://")
+  ) {
+    const response = await fetch(uri);
+    return response.blob();
+  }
+
+  return new File(uri);
+}
+
+function getRoleLabel(role?: string | null) {
+  switch (String(role === "admin" ? "admin" : "student")) {
+    case "admin":
+      return "أدمن";
+    case "__legacy_1":
+      return "أمن";
+    case "__legacy_2":
+      return "استجابة";
+    case "__legacy_3":
+      return "موظف";
+    default:
+      return "طالب";
+  }
+}
+
 export default function Settings() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const cameraRef = useRef<any>(null);
@@ -45,16 +87,35 @@ export default function Settings() {
   const [capturingPhoto, setCapturingPhoto] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [storedName, setStoredName] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    let active = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        const local = await getUserLocally();
+        const role = await getRoleForUser(firebaseUser);
+
+        if (!active) return;
+
         setUser(firebaseUser);
+        setStoredName(
+          local?.uid === firebaseUser.uid && typeof local.fullName === "string"
+            ? local.fullName.trim()
+            : "",
+        );
+        setUserRole(role);
       } else {
         router.replace("/auth/login");
       }
     });
-    return unsubscribe;
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   const openEditModal = () => {
@@ -71,7 +132,21 @@ export default function Settings() {
     try {
       setSaving(true);
       await updateProfile(user, { displayName: editName.trim() });
-      setUser({ ...user, displayName: editName.trim() } as User);
+      await setDoc(
+        doc(db, "users", user.uid),
+        { fullName: editName.trim(), updatedAt: new Date().toISOString() },
+        { merge: true },
+      ).catch(() => undefined);
+      await saveUserLocally({
+        ...((await getUserLocally()) ?? { uid: user.uid, email: user.email ?? "" }),
+        uid: user.uid,
+        email: user.email ?? "",
+        fullName: editName.trim(),
+        role: userRole ?? undefined,
+      });
+      await reload(user);
+      setUser(auth.currentUser);
+      setStoredName(editName.trim());
       setEditModalVisible(false);
     } catch {
       Alert.alert("خطأ", "فشل تحديث الاسم، حاول مجدداً");
@@ -146,7 +221,7 @@ export default function Settings() {
     await uploadPhoto(asset.uri, asset.mimeType);
   };
 
-  const uploadPhoto = async (uri: string, mimeType = "image/jpeg") => {
+  const uploadPhoto = async (uri: string, mimeType?: string | null) => {
     if (!user) {
       Alert.alert("خطأ", "يجب تسجيل الدخول قبل رفع صورة البروفايل");
       return;
@@ -155,23 +230,32 @@ export default function Settings() {
       setUploadingPhoto(true);
       setPhoto(uri);
 
-      const extension = mimeType.includes("png") ? "png" : "jpg";
-      const storagePath = `report-media/${user.uid}/profile/avatar-${Date.now()}.${extension}`;
+      const normalizedMimeType = getImageMimeType(uri, mimeType);
+      const extension = getImageExtension(normalizedMimeType);
+      const storagePath = `profilePhotos/${user.uid}/avatar-${Date.now()}.${extension}`;
       const storageRef = ref(storage, storagePath);
+      const imageBlob = await getImageBlob(uri);
 
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.onload = () => resolve(xhr.response);
-        xhr.onerror = () => reject(new Error("Failed to read file"));
-        xhr.responseType = "blob";
-        xhr.open("GET", uri, true);
-        xhr.send();
+      await uploadBytes(storageRef, imageBlob, {
+        contentType: normalizedMimeType,
       });
-
-      await uploadBytes(storageRef, blob, { contentType: mimeType });
       const downloadURL = await getDownloadURL(storageRef);
       await updateProfile(user, { photoURL: downloadURL });
-      setUser({ ...user, photoURL: downloadURL } as User);
+      await setDoc(
+        doc(db, "users", user.uid),
+        { photoURL: downloadURL, updatedAt: new Date().toISOString() },
+        { merge: true },
+      ).catch(() => undefined);
+      await saveUserLocally({
+        ...((await getUserLocally()) ?? { uid: user.uid, email: user.email ?? "" }),
+        uid: user.uid,
+        email: user.email ?? "",
+        fullName: user.displayName ?? storedName,
+        role: userRole ?? undefined,
+        photoURL: downloadURL,
+      });
+      await reload(user);
+      setUser(auth.currentUser);
       setPhoto(null);
     } catch (error) {
       console.log("Upload failed:", error);
@@ -197,7 +281,7 @@ export default function Settings() {
     ]);
   };
 
-  const fullName = user?.displayName ?? "مستخدم";
+  const fullName = user?.displayName || storedName || "مستخدم";
   const email = user?.email ?? "";
   const uid = user?.uid?.slice(0, 8) ?? "-";
   const photoURL = photo ?? user?.photoURL;
@@ -237,7 +321,7 @@ export default function Settings() {
             <Text style={styles.profileName}>{fullName}</Text>
             <Text style={styles.profileEmail}>{email}</Text>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>طالب</Text>
+              <Text style={styles.roleBadgeText}>{getRoleLabel(userRole)}</Text>
             </View>
           </View>
 

@@ -96,7 +96,6 @@ export default function SignupScreen() {
             createdAt: new Date().toISOString(),
           });
         } catch {
-          // إذا قواعد Firestore تمنع الكتابة، نكمل لأن الحساب انعمل في Auth
         }
 
         await saveUserLocally({

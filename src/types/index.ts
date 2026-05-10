@@ -1,4 +1,4 @@
-export type UserRole = "student" | "staff" | "security" | "responder" | "admin";
+export type UserRole = "student" | "admin";
 
 export interface User {
   uid: string;
@@ -18,7 +18,13 @@ export type EmergencyType =
 
 export type ReportPriority = "Low" | "Medium" | "High" | "Critical";
 
-export type ReportStatus = "Open" | "In Progress" | "Resolved" | "Critical";
+export type ReportStatus =
+  | "Open"
+  | "Reviewed"
+  | "Assigned"
+  | "In Progress"
+  | "Resolved"
+  | "Critical";
 
 export interface Report {
   id: string;

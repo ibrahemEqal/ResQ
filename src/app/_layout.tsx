@@ -1,13 +1,13 @@
-import { auth, db } from "@/config/firebaseConfig";
+import { auth } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
 import {
   clearUserLocally,
   getUserLocally,
   StoredUser,
 } from "@/services/authService";
+import { canAccessDashboard, getRoleForUser } from "@/services/roleService";
 import { router, Slot, usePathname, useRootNavigationState } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-gesture-handler";
@@ -32,13 +32,11 @@ export default function RootLayout() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        let nextRole: string | null = null;
         try {
-          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-          if (snap.exists()) {
-            const rawRole = snap.data().role;
-            setRole(typeof rawRole === "string" ? rawRole.trim() : null);
-          }
+          nextRole = await getRoleForUser(firebaseUser);
         } catch {}
+        setRole(nextRole);
         setUser(firebaseUser);
       } else {
         setUser(null);
@@ -64,10 +62,9 @@ export default function RootLayout() {
         const localRole =
           typeof localUser?.role === "string" ? localUser.role.trim() : null;
         const effectiveRole = (role ?? localRole ?? null)?.trim?.() ?? null;
-        const target =
-          effectiveRole === "security" || effectiveRole === "admin"
-            ? "/(tabs)/dashboard"
-            : "/(tabs)/home";
+        const target = canAccessDashboard(effectiveRole, user.email)
+          ? "/(tabs)/dashboard"
+          : "/(tabs)/home";
 
         if (isAuthRoute || isIndexRoute) {
           router.replace(target);

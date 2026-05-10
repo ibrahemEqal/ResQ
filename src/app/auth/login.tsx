@@ -1,11 +1,11 @@
 import CustomInput from "@/components/CustomInput";
-import { auth, db } from "@/config/firebaseConfig";
+import { auth } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
 import { Theme } from "@/constants/theme";
 import { saveUserLocally } from "@/services/authService";
+import { canAccessDashboard, getRoleForUser } from "@/services/roleService";
 import { router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -68,16 +68,8 @@ export default function LoginScreen() {
 
       let userRole: string | null = "student";
       try {
-        const userDocRef = doc(db, "users", userUid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          userRole =
-            typeof userData.role === "string" ? userData.role.trim() : null;
-        }
+        userRole = (await getRoleForUser(userCredential.user)) ?? "student";
       } catch {
-        // Firestore فشل — نخلي role الافتراضي student
       }
 
       await saveUserLocally({
@@ -86,12 +78,12 @@ export default function LoginScreen() {
         fullName: userCredential.user.displayName || "",
         role: typeof userRole === "string" ? userRole.trim() : undefined,
       });
-      console.log("💾 تم حفظ بيانات المستخدم محلياً بنجاح:", {
+      console.log("تم حفظ بيانات المستخدم محلياً بنجاح:", {
         email: userCredential.user.email,
         role: userRole,
       });
 
-      if (userRole === "security" || userRole === "admin") {
+      if (canAccessDashboard(userRole, userCredential.user.email)) {
         router.replace("/(tabs)/dashboard");
         return;
       }

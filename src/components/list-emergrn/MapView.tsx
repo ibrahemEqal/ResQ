@@ -12,9 +12,16 @@ interface MapViewProps {
   reports: Report[];
   expandedId: string | null;
   onMarkerPress: (id: string | null) => void;
+  canResolveReports: boolean;
   onResolve: (id: string) => void;
 }
-export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve }: MapViewProps) {
+export function EmergencyMapView({
+  reports,
+  expandedId,
+  onMarkerPress,
+  canResolveReports,
+  onResolve,
+}: MapViewProps) {
   const selectedReport = reports.find((r) => r.id === expandedId) ?? null;
   const BUILDINGS = [
     { bid: 13, name: 'مسرح المصري', cx: 200, cy: 60 },
@@ -123,13 +130,24 @@ export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve
         <MapBottomSheet
           report={selectedReport}
           onClose={() => onMarkerPress(null)}
+          canResolve={canResolveReports}
           onResolve={() => onResolve(selectedReport.id)}
         />
       )}
     </View>
   );
 }
-function MapBottomSheet({ report, onClose, onResolve }: { report: Report; onClose: () => void; onResolve: () => void }) {
+function MapBottomSheet({
+  report,
+  onClose,
+  canResolve,
+  onResolve,
+}: {
+  report: Report;
+  onClose: () => void;
+  canResolve: boolean;
+  onResolve: () => void;
+}) {
   const statusColor = getStatusColor(report.status);
   return (
     <View style={styles.sheet}>
@@ -150,7 +168,7 @@ function MapBottomSheet({ report, onClose, onResolve }: { report: Report; onClos
           {getStatusLabel(report.status as ReportStatus)}
         </Text>
       </View>
-      {report.status !== 'Resolved' && (
+      {canResolve && report.status !== 'Resolved' && (
         <TouchableOpacity style={styles.sheetResolveBtn} onPress={onResolve}>
           <Text style={styles.sheetResolveBtnText}>✔️ تعيين كـ تم الحل</Text>
         </TouchableOpacity>

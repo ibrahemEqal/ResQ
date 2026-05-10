@@ -6,9 +6,16 @@ interface ReportCardProps {
   report: Report;
   isExpanded: boolean;
   onPress: () => void;
+  canResolve: boolean;
   onResolve: () => void;
 }
-export function ReportCard({ report, isExpanded, onPress, onResolve }: ReportCardProps) {
+export function ReportCard({
+  report,
+  isExpanded,
+  onPress,
+  canResolve,
+  onResolve,
+}: ReportCardProps) {
   const statusColor = getStatusColor(report.status);
   return (
     <TouchableOpacity
@@ -40,7 +47,7 @@ export function ReportCard({ report, isExpanded, onPress, onResolve }: ReportCar
       {isExpanded && (
         <View style={styles.descriptionBox}>
           <Text style={styles.descriptionText}>{report.description}</Text>
-          {report.status !== 'Resolved' && (
+          {canResolve && report.status !== 'Resolved' && (
             <TouchableOpacity style={styles.resolveBtn} onPress={onResolve}>
               <Text style={styles.resolveBtnText}>✔️ تعيين كـ تم الحل</Text>
             </TouchableOpacity>

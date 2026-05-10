@@ -3,17 +3,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useEffect, useState } from "react";
 
-import { auth, db } from "@/config/firebaseConfig";
-import { getUserLocally } from "@/services/authService";
+import { auth } from "@/config/firebaseConfig";
+import { canAccessDashboard, getRoleForUser } from "@/services/roleService";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
-const DASHBOARD_ROLES = new Set(["admin", "security", "responder"]);
-
-function canAccessDashboard(role: string | null | undefined) {
-  return typeof role === "string" && DASHBOARD_ROLES.has(role.trim());
-}
 
 export default function TabLayout() {
   const [showDashboard, setShowDashboard] = useState(false);
@@ -29,23 +22,15 @@ export default function TabLayout() {
         return;
       }
 
-      const local = await getUserLocally();
-      const localRole =
-        typeof local?.role === "string" ? local.role.trim() : null;
-      let remoteRole: string | null = null;
-
+      let role: string | null = null;
       try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-          const rawRole = snap.data().role;
-          remoteRole = typeof rawRole === "string" ? rawRole.trim() : null;
-        }
+        role = await getRoleForUser(user);
       } catch {
-        remoteRole = null;
+        role = null;
       }
 
       if (active) {
-        setShowDashboard(canAccessDashboard(remoteRole ?? localRole));
+        setShowDashboard(canAccessDashboard(role, user.email));
       }
     });
 
