@@ -49,8 +49,6 @@ export default function Settings() {
   const [user, setUser] = useState<User | null>(null);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emergencySound, setEmergencySound] = useState(true);
-  const [locationSharing, setLocationSharing] = useState(true);
-  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);

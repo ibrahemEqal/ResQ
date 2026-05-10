@@ -68,16 +68,8 @@ export default function LoginScreen() {
 
       let userRole: string | null = "student";
       try {
-        const userDocRef = doc(db, "users", userUid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          userRole =
-            typeof userData.role === "string" ? userData.role.trim() : null;
-        }
-      } catch {
-      }
+        userRole = (await getRoleForUser(userCredential.user)) ?? "student";
+      } catch {}
 
       await saveUserLocally({
         uid: userUid,

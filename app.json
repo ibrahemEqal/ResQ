@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "resq",
     "experiments": {
       "typedRoutes": true
     }
