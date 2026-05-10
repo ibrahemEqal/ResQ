@@ -15,7 +15,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { auth, db } from "@/config/firebaseConfig";
 import { clearUserLocally, getUserLocally } from "@/services/authService";
-import { getRoleForUser } from "@/services/roleService";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -33,7 +32,6 @@ export default function Home() {
           const safeName = local.fullName.trim();
           if (safeName) setUserName(safeName);
         }
-        setUserRole(await getRoleForUser(user));
 
         try {
           const docRef = doc(db, "users", user.uid);
@@ -158,7 +156,6 @@ export default function Home() {
         </View>
 
         <View style={styles.grid}>
-          {/* Card 1: Tips */}
           <TouchableOpacity
             style={styles.premiumCard}
             onPress={() => router.push("/tips")}
@@ -252,7 +249,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-  /* Header Styles */
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -304,7 +300,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
-  /* SOS Button Styles */
   sosContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -349,7 +344,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* Premium Cards Grid */
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",

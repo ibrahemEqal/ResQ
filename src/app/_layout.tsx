@@ -1,12 +1,7 @@
 import { auth } from "@/config/firebaseConfig";
 import { COLORS } from "@/constants/colors";
-import {
-  clearUserLocally,
-  getUserLocally,
-  StoredUser,
-} from "@/services/authService";
-import { canAccessDashboard, getRoleForUser } from "@/services/roleService";
-import { router, Slot, usePathname, useRootNavigationState } from "expo-router";
+import { clearUserLocally, getUserLocally } from "@/services/authService";
+import { router, Slot, useRootNavigationState } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -23,7 +18,7 @@ export default function RootLayout() {
   useEffect(() => {
     const checkLocalUser = async () => {
       const storedUser = await getUserLocally();
-      console.log("✅ البيانات المحفوظة محلياً:", storedUser);
+      console.log("البيانات المحفوظة محلياً:", storedUser);
       setLocalUser(storedUser);
     };
     checkLocalUser();
@@ -34,7 +29,11 @@ export default function RootLayout() {
       if (firebaseUser) {
         let nextRole: string | null = null;
         try {
-          nextRole = await getRoleForUser(firebaseUser);
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (snap.exists()) {
+            const rawRole = snap.data().role;
+            setRole(typeof rawRole === "string" ? rawRole.trim() : null);
+          }
         } catch {}
         setRole(nextRole);
         setUser(firebaseUser);
@@ -54,35 +53,28 @@ export default function RootLayout() {
     (async () => {
       if (user === undefined) return;
 
-      const isAuthRoute = pathname.startsWith("/auth");
-      const isIndexRoute = pathname === "/";
-
       if (user) {
-        console.log("🔄 توجيه من Firebase Auth:", user.email);
+        console.log("توجيه من Firebase Auth:", user.email);
         const localRole =
           typeof localUser?.role === "string" ? localUser.role.trim() : null;
         const effectiveRole = (role ?? localRole ?? null)?.trim?.() ?? null;
-        const target = canAccessDashboard(effectiveRole, user.email)
-          ? "/(tabs)/dashboard"
-          : "/(tabs)/home";
-
-        if (isAuthRoute || isIndexRoute) {
-          router.replace(target);
+        if (effectiveRole === "security" || effectiveRole === "admin") {
+          router.replace("/(tabs)/dashboard");
+        } else {
+          router.replace("/(tabs)/home");
         }
       } else {
         if (localUser) {
           await clearUserLocally();
           setLocalUser(null);
         }
-        if (!isAuthRoute) {
-          console.log("🔄 لا توجد جلسة، توجيه للـ Login");
-          router.replace("/auth/login");
-        }
+        console.log("لا توجد جلسة، توجيه للـ Login");
+        router.replace("/auth/login");
       }
     })();
-  }, [user, role, navigationState?.key, localUser, pathname]);
+  }, [user, role, navigationState?.key, localUser]);
 
-  if (user === undefined || localUser === undefined || !navigationState?.key) {
+  if ((user === undefined && !localUser) || !navigationState?.key) {
     return (
       <View
         style={{
