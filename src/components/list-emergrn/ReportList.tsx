@@ -9,21 +9,21 @@ import {
   View,
 } from 'react-native';
 import { ReportCard } from './ReportCard';
+
 interface ReportListProps {
   reports: Report[];
   refreshing: boolean;
   onRefresh: () => void;
   expandedId: string | null;
-  onCardPress: (id: string) => void;
-  onResolve: (id: string) => void;
+  onCardPress: (id: string | null) => void;
 }
+
 export function ReportList({
   reports,
   refreshing,
   onRefresh,
   expandedId,
   onCardPress,
-  onResolve,
 }: ReportListProps) {
   return (
     <FlatList
@@ -34,8 +34,7 @@ export function ReportList({
         <ReportCard
           report={item}
           isExpanded={item.id === expandedId}
-          onPress={() => onCardPress(item.id === expandedId ? '' : item.id)}
-          onResolve={() => onResolve(item.id)}
+          onPress={() => onCardPress(item.id === expandedId ? null : item.id)}
         />
       )}
       contentContainerStyle={styles.listContent}
@@ -52,6 +51,7 @@ export function ReportList({
     />
   );
 }
+
 function EmptyState() {
   return (
     <View style={styles.emptyContainer}>
@@ -61,6 +61,7 @@ function EmptyState() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   listContent: {
     padding: 16,

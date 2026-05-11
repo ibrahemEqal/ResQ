@@ -9,19 +9,22 @@ import Svg, {
   Image as SvgImage,
   Text as SvgText
 } from 'react-native-svg';
+
 interface MapViewProps {
   reports: Report[];
   expandedId: string | null;
   onMarkerPress: (id: string | null) => void;
-  onResolve: (id: string) => void;
 }
+
 const ALERT_PINS = [
-  { bid: 8,  cx: 224, cy: 149, color: '#FF3B30' }, 
-  { bid: 20, cx: 142, cy: 110, color: '#FF9500' }, 
-  { bid: 28, cx: 63,  cy: 112, color: '#007AFF' }, 
+  { bid: 8, cx: 224, cy: 149, color: '#FF3B30' },
+  { bid: 20, cx: 142, cy: 110, color: '#FF9500' },
+  { bid: 28, cx: 63, cy: 112, color: '#007AFF' },
 ];
-export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve }: MapViewProps) {
+
+export function EmergencyMapView({ reports, expandedId, onMarkerPress }: MapViewProps) {
   const selectedReport = reports.find((r) => r.id === expandedId) ?? null;
+
   const BUILDINGS = [
     { bid: 13, name: 'مسرح المصري', cx: 200, cy: 60 },
     { bid: 20, name: 'مكتبة', cx: 160, cy: 95 },
@@ -30,22 +33,21 @@ export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve
     { bid: 25, name: 'الكوري', cx: 105, cy: 100 },
     { bid: 28, name: 'المراكز العلمية', cx: 88, cy: 85 },
     { bid: 26, name: 'القانون', cx: 90, cy: 100 },
-    { bid: 22, name: 'طب', cx: 155, cy: 55},
+    { bid: 22, name: 'طب', cx: 155, cy: 55 },
     { bid: 24, name: 'الصيدلة', cx: 125, cy: 55 },
-    { bid: 8,  name: 'هندسة و it', cx: 245, cy: 117 },
-    { bid: 9,  name: 'العلوم', cx: 225, cy: 90 },
-    { bid: 7,  name: 'الجامع', cx: 270, cy: 70 },
-    { bid: 2,  name: 'الأمن', cx: 290, cy: 65 },
-    { bid: 4,  name: 'الرياضة', cx: 290, cy: 100 },
-    { bid: 1,  name: 'الملعب', cx: 3303, cy: 95 },
+    { bid: 8, name: 'هندسة و it', cx: 245, cy: 117 },
+    { bid: 9, name: 'العلوم', cx: 225, cy: 90 },
+    { bid: 7, name: 'الجامع', cx: 270, cy: 70 },
+    { bid: 2, name: 'الأمن', cx: 290, cy: 65 },
+    { bid: 4, name: 'الرياضة', cx: 290, cy: 100 },
+    { bid: 1, name: 'الملعب', cx: 3303, cy: 95 },
     { bid: 14, name: 'الساحة البيضا', cx: 200, cy: 95 },
   ];
+
   return (
     <View style={styles.wrapper}>
-      {}
       <ScrollView style={styles.mapScroll} contentContainerStyle={styles.mapScrollContent}>
         <Svg width="100%" viewBox="0 0 400 190" style={styles.svg}>
-          {}
           <SvgImage
             href={require('../../../assets/images/map.png')}
             x="0"
@@ -59,7 +61,7 @@ export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve
               alert(`الإحداثيات لهذا المكان هي:\ncx: ${Math.round(locationX)}\ncy: ${Math.round(locationY)}\n\nقم بتسجيلها وتعديلها في الملف!`);
             }}
           />
-          {}
+
           {BUILDINGS.map((pin) => {
             const cx = pin.cx;
             const cy = pin.cy;
@@ -70,25 +72,20 @@ export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve
               if (r.location && r.location.includes(pin.name)) return true;
               return false;
             });
-            if (!matchedReport) {
-              return null;
-            }
+
+            if (!matchedReport) return null;
+
             const color = getStatusColor(matchedReport.status);
             return (
               <G key={pin.bid} onPress={() => onMarkerPress(matchedReport.id)}>
-                {}
-                <Circle cx={cx} cy={cy} r="7" fill={color} opacity="0.25" pointerEvents="none"/>
-                {}
-                <Circle cx={cx} cy={cy} r="5" fill={color} pointerEvents="none"/>
-                <SvgText x={cx} y={cy + 2} textAnchor="middle"
-                  fontSize="6"
-                  fontWeight="700" fontFamily="System" fill="#fff" pointerEvents="none">!</SvgText>
-                {}
-                <Circle cx={cx} cy={cy} r="15" fill="transparent"/>
+                <Circle cx={cx} cy={cy} r="7" fill={color} opacity="0.25" pointerEvents="none" />
+                <Circle cx={cx} cy={cy} r="5" fill={color} pointerEvents="none" />
+                <SvgText x={cx} y={cy + 2} textAnchor="middle" fontSize="6" fontWeight="700" fontFamily="System" fill="#fff" pointerEvents="none">!</SvgText>
+                <Circle cx={cx} cy={cy} r="15" fill="transparent" />
               </G>
             );
           })}
-          {}
+
           {selectedReport && (() => {
             const pin = BUILDINGS.find(p => {
               if (p.bid === 8 && selectedReport.type === 'Fire') return true;
@@ -98,15 +95,13 @@ export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve
               return false;
             });
             if (!pin) return null;
-            const cx = pin.cx;
-            const cy = pin.cy;
             return (
-              <Circle cx={cx} cy={cy} r={12} fill="none" stroke="#FF3B30" strokeWidth="2" pointerEvents="none"/>
+              <Circle cx={pin.cx} cy={pin.cy} r={12} fill="none" stroke="#FF3B30" strokeWidth="2" pointerEvents="none" />
             );
           })()}
         </Svg>
       </ScrollView>
-      {}
+
       <View style={styles.legend}>
         {[
           { color: '#1E3157', label: 'كليات' },
@@ -119,27 +114,28 @@ export function EmergencyMapView({ reports, expandedId, onMarkerPress, onResolve
               styles.legendDot,
               item.circle && styles.legendCircle,
               { backgroundColor: item.color },
-            ]}/>
+            ]} />
             <Text style={styles.legendLabel}>{item.label}</Text>
           </View>
         ))}
       </View>
-      {}
+
       {selectedReport && (
         <MapBottomSheet
           report={selectedReport}
           onClose={() => onMarkerPress(null)}
-          onResolve={() => onResolve(selectedReport.id)}
         />
       )}
     </View>
   );
 }
-function MapBottomSheet({ report, onClose, onResolve }: { report: Report; onClose: () => void; onResolve: () => void }) {
+
+function MapBottomSheet({ report, onClose }: { report: Report; onClose: () => void; }) {
   const statusColor = getStatusColor(report.status);
+
   return (
     <View style={styles.sheet}>
-      <View style={styles.sheetHandle}/>
+      <View style={styles.sheetHandle} />
       <View style={styles.sheetHeader}>
         <Text style={styles.sheetType}>
           {getTypeLabel(report.type as EmergencyType)}
@@ -151,19 +147,15 @@ function MapBottomSheet({ report, onClose, onResolve }: { report: Report; onClos
       <Text style={styles.sheetLocation}>📍 {report.location}</Text>
       <Text style={styles.sheetDesc} numberOfLines={3}>{report.description}</Text>
       <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
-        <View style={[styles.statusDot, { backgroundColor: statusColor }]}/>
+        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         <Text style={[styles.statusText, { color: statusColor }]}>
           {getStatusLabel(report.status as ReportStatus)}
         </Text>
       </View>
-      {report.status !== 'Resolved' && (
-        <TouchableOpacity style={styles.sheetResolveBtn} onPress={onResolve}>
-          <Text style={styles.sheetResolveBtnText}>✔️ تعيين كـ تم الحل</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
@@ -182,7 +174,7 @@ const styles = StyleSheet.create({
   },
   svg: {
     width: '100%',
-    aspectRatio: 400 / 190, 
+    aspectRatio: 400 / 190,
   },
   legend: {
     flexDirection: 'row',
@@ -280,17 +272,5 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  sheetResolveBtn: {
-    marginTop: 16,
-    backgroundColor: '#34C759',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  sheetResolveBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
   },
 });

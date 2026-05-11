@@ -1,65 +1,48 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/colors';
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "@/constants/colors";
 
 export default function TabLayout() {
+    const userRole = "user" as string;
+
     return (
         <Tabs
             screenOptions={{
-                headerShown: false, 
-                tabBarActiveTintColor: COLORS.primary, 
-                tabBarInactiveTintColor: '#888', 
-                tabBarStyle: {
-                    backgroundColor: COLORS.surface, 
-                    borderTopWidth: 1,
-                    borderTopColor: COLORS.border,
-                    height: 65,
-                    paddingBottom: 10,
-                    paddingTop: 5,
-                },
-                tabBarLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: 'bold'
-                }
+                tabBarActiveTintColor: COLORS.primary,
+                tabBarStyle: { backgroundColor: "#0F172A", borderTopWidth: 0 },
+                headerShown: false,
             }}
         >
             <Tabs.Screen
                 name="home"
                 options={{
-                    title: 'الرئيسية',
-                    tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
-                    ),
+                    title: "الرئيسية",
+                    tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
                 }}
             />
 
             <Tabs.Screen
                 name="dashboard"
                 options={{
-                    title: 'القيادة',
-                    tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? "stats-chart" : "stats-chart-outline"} size={24} color={color} />
-                    ),
+                    title: "الإدارة",
+                    href: userRole === "admin" ? "/dashboard" : null,
+                    tabBarIcon: ({ color }) => <Ionicons name="stats-chart" size={24} color={color} />,
                 }}
             />
 
             <Tabs.Screen
                 name="tips"
                 options={{
-                    title: 'الطوارئ',
-                    tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? "shield-checkmark" : "shield-checkmark-outline"} size={24} color={color} />
-                    ),
+                    title: "الإرشادات",
+                    tabBarIcon: ({ color }) => <Ionicons name="bulb" size={24} color={color} />,
                 }}
             />
 
             <Tabs.Screen
                 name="settings"
                 options={{
-                    title: 'الإعدادات',
-                    tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? "settings" : "settings-outline"} size={24} color={color} />
-                    ),
+                    title: "الإعدادات",
+                    tabBarIcon: ({ color }) => <Ionicons name="settings" size={24} color={color} />,
                 }}
             />
         </Tabs>

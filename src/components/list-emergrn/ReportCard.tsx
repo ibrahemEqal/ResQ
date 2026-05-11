@@ -3,26 +3,26 @@ import { EmergencyType, Report } from '@/types';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getStatusColor, getStatusLabel, getTimeAgo, getTypeLabel } from '../../app/list-emergrn/store';
+
 interface ReportCardProps {
   report: Report;
   isExpanded: boolean;
   onPress: () => void;
-  onResolve: () => void;
 }
-export function ReportCard({ report, isExpanded, onPress, onResolve }: ReportCardProps) {
+
+export function ReportCard({ report, isExpanded, onPress }: ReportCardProps) {
   const statusColor = getStatusColor(report.status);
+
   return (
     <TouchableOpacity
       style={[styles.card, isExpanded && styles.cardExpanded]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      {}
       <View style={styles.header}>
         <Text style={styles.typeText}>
           {getTypeLabel(report.type as EmergencyType)}
         </Text>
-        {}
         <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           <Text style={[styles.statusText, { color: statusColor }]}>
@@ -30,25 +30,20 @@ export function ReportCard({ report, isExpanded, onPress, onResolve }: ReportCar
           </Text>
         </View>
       </View>
-      {}
+
       <View style={styles.locationRow}>
         <Text style={styles.locationIcon}>📍</Text>
         <Text style={styles.locationText} numberOfLines={1}>
           {report.location}
         </Text>
       </View>
-      {}
+
       {isExpanded && (
         <View style={styles.descriptionBox}>
           <Text style={styles.descriptionText}>{report.description}</Text>
-          {report.status !== 'Resolved' && (
-            <TouchableOpacity style={styles.resolveBtn} onPress={onResolve}>
-              <Text style={styles.resolveBtnText}>✔️ تعيين كـ تم الحل</Text>
-            </TouchableOpacity>
-          )}
         </View>
       )}
-      {}
+
       <View style={styles.footer}>
         <Text style={styles.reportId}>{report.id}</Text>
         <Text style={styles.timeText}>{getTimeAgo(report.createdAt)}</Text>
@@ -56,6 +51,7 @@ export function ReportCard({ report, isExpanded, onPress, onResolve }: ReportCar
     </TouchableOpacity>
   );
 }
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
@@ -134,17 +130,5 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 11,
     color: COLORS.textSecondary,
-  },
-  resolveBtn: {
-    marginTop: 12,
-    backgroundColor: '#34C759',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  resolveBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
 });

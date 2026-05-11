@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useRef } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { StatBox } from '@/app/ـcomponents/StatBox';
 import { useDashboard } from '../incident/hooks/useDashboard';
@@ -11,24 +10,19 @@ import { useDashboard } from '../incident/hooks/useDashboard';
 export default function Dashboard() {
   const { stats, recentLogs } = useDashboard();
 
-  const radarAnim1 = useRef(new Animated.Value(0)).current;
-  const radarAnim2 = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  React.useEffect(() => {
-    const createRadarWave = (anim: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, { toValue: 1, duration: 3000, easing: Easing.out(Easing.cubic), useNativeDriver: true })
-        ])
-      );
-    };
-    createRadarWave(radarAnim1, 0).start();
-    createRadarWave(radarAnim2, 1500).start();
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.3, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true })
+      ])
+    ).start();
   }, []);
 
-  const chartData = [4, 7, 2, 9, 3, 5, stats.critical + stats.open];
-  const maxChartValue = Math.max(...chartData, 1);
+  const totalReports = stats.critical + stats.open + stats.resolved;
+  const isUrgent = stats.critical > 0;
 
   return (
     <View style={styles.container}>
@@ -39,90 +33,66 @@ export default function Dashboard() {
           <Text style={styles.pageTitle}>مركز القيادة</Text>
           <Text style={styles.subTitle}>Najah Campus Security</Text>
         </View>
-        <TouchableOpacity style={styles.reportBtn}>
-          <Ionicons name="document-text" size={16} color="#FFF" />
-          <Text style={styles.reportBtnText}>تصدير تقرير</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 50 }}>
 
-        {/* Radar */}
-        <BlurView intensity={20} tint="dark" style={styles.radarCard}>
-          <View style={styles.radarHeader}>
-            <Text style={styles.sectionTitle}>الرادار المباشر</Text>
-            <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>مسح نشط</Text>
+        <View style={[styles.statusBanner, isUrgent ? styles.statusUrgent : styles.statusSafe]}>
+          <View style={styles.statusHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Animated.View style={[
+                styles.pulseDot,
+                isUrgent ? { backgroundColor: '#FF2A2A' } : { backgroundColor: '#00FF66' },
+                { transform: [{ scale: pulseAnim }] }
+              ]} />
+              <Text style={[styles.statusText, isUrgent ? { color: '#FF2A2A' } : { color: '#00FF66' }]}>
+                {isUrgent ? 'حالة تأهب قصوى' : 'المراقبة نشطة - الوضع مستقر'}
+              </Text>
             </View>
           </View>
-          <View style={styles.radarContainer}>
-            <Animated.View style={[styles.radarWave, {
-              transform: [{ scale: radarAnim1.interpolate({ inputRange: [0, 1], outputRange: [0.2, 2] }) }],
-              opacity: radarAnim1.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.8, 0.3, 0] })
-            }]} />
-            <Animated.View style={[styles.radarWave, {
-              transform: [{ scale: radarAnim2.interpolate({ inputRange: [0, 1], outputRange: [0.2, 2] }) }],
-              opacity: radarAnim2.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.8, 0.3, 0] })
-            }]} />
-            <View style={styles.radarCenter}>
-              <Ionicons name="location" size={24} color="#00F0FF" />
-            </View>
-          </View>
-          <Text style={styles.radarStatusText}>تم اكتشاف {stats.critical} حالات حرجة</Text>
-        </BlurView>
+          <Text style={styles.statusDesc}>
+            {isUrgent
+              ? `تم رصد عدد (${stats.critical}) حالات حرجة تتطلب تدخلاً أمنياً فورياً.`
+              : 'لا يوجد أي حالات حرجة في الحرم الجامعي في الوقت الحالي.'}
+          </Text>
+        </View>
 
-        {/* Stats */}
         <View style={styles.statsGrid}>
+          <StatBox title="إجمالي البلاغات" count={totalReports} color="#00F0FF" icon="albums" trend="اليوم" />
           <StatBox title="حالات حرجة" count={stats.critical} color="#FF2A2A" icon="warning" trend={`+${stats.critical}`} />
           <StatBox title="قيد المعالجة" count={stats.open} color="#FFB800" icon="time" trend="نشط" />
           <StatBox title="تم الحل" count={stats.resolved} color="#00FF66" icon="shield-checkmark" trend={`+${stats.resolved}`} />
-          <StatBox title="فرق الاستجابة" count={4} color="#00F0FF" icon="people" trend="نشط" />
         </View>
 
-        {/* Chart */}
-        <BlurView intensity={20} tint="dark" style={styles.chartCard}>
-          <Text style={styles.sectionTitle}>معدل البلاغات (آخر 7 أيام)</Text>
-          <View style={styles.chartContainer}>
-            {chartData.map((val, index) => {
-              const heightPercent = (val / maxChartValue) * 100;
-              const isToday = index === chartData.length - 1;
-              return (
-                <View key={index} style={styles.chartBarWrapper}>
-                  <View style={styles.chartBarBg}>
-                    <LinearGradient
-                      colors={isToday ? ['#FF2A2A', '#990000'] : ['#00F0FF', '#0055FF']}
-                      style={[styles.chartBarFill, { height: `${heightPercent}%` }]}
-                    />
-                  </View>
-                  <Text style={[styles.chartLabel, isToday && { color: '#FF2A2A' }]}>
-                    {isToday ? 'اليوم' : `ي-${index + 1}`}
+        <Text style={styles.sectionTitle}>أحدث البلاغات (Live)</Text>
+
+        {recentLogs.length > 0 ? (
+          recentLogs.map((report) => (
+            <View key={report.id} style={styles.logItem}>
+              <View style={[styles.logIndicator, { backgroundColor: report.priority === 'High' ? '#FF2A2A' : '#FFB800' }]} />
+              <View style={styles.logContent}>
+                <View style={styles.logHeader}>
+                  <Text style={styles.logType}>{report.type || 'بلاغ عام'}</Text>
+                  <Text style={styles.logTime}>
+                    {report.createdAt ? new Date(report.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}
                   </Text>
                 </View>
-              );
-            })}
-          </View>
-        </BlurView>
-
-        {/* Logs */}
-        <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 15 }]}>سجل العمليات</Text>
-        {recentLogs.map((report) => (
-          <View key={report.id} style={styles.logItem}>
-            <View style={[styles.logIndicator, { backgroundColor: report.priority === 'High' ? '#FF2A2A' : '#FFB800' }]} />
-            <View style={styles.logContent}>
-              <View style={styles.logHeader}>
-                <Text style={styles.logType}>[ {report.type?.toUpperCase() || 'بلاغ'} ]</Text>
-                <Text style={styles.logTime}>
-                  {report.createdAt ? new Date(report.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}
+                <Text style={styles.logLocation} numberOfLines={1}>
+                  <Ionicons name="location-outline" size={12} color="#8BA3C9" /> {report.location || 'موقع غير محدد'}
                 </Text>
               </View>
-              <Text style={styles.logLocation}>{report.location || 'موقع غير محدد'}</Text>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => router.push(`/incident/${report.id}` as any)}>
+                <Text style={styles.actionBtnText}>معاينة</Text>
+                <Ionicons name="chevron-back" size={12} color="#00F0FF" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => router.push(`/incident/${report.id}` as any)}>
-              <Text style={styles.actionBtnText}>تفاصيل</Text>
-            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={styles.emptyLogsContainer}>
+            <Ionicons name="checkmark-circle-outline" size={40} color="#00FF66" style={{ opacity: 0.5 }} />
+            <Text style={styles.emptyLogsText}>لا توجد أي بلاغات مسجلة حديثاً.</Text>
           </View>
-        ))}
+        )}
 
       </ScrollView>
     </View>
@@ -145,30 +115,28 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(0, 240, 255, 0.3)',
   },
   reportBtnText: { color: '#FFF', fontSize: 12, fontWeight: 'bold', marginLeft: 6 },
-  sectionTitle: { color: '#FFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 1 },
-  radarCard: { marginTop: 20, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(0, 240, 255, 0.15)', overflow: 'hidden' },
-  radarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 42, 42, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 42, 42, 0.3)' },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FF2A2A', marginRight: 6 },
-  liveText: { color: '#FF2A2A', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
-  radarContainer: { height: 160, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', backgroundColor: 'rgba(0, 240, 255, 0.02)', borderRadius: 80, borderWidth: 1, borderColor: 'rgba(0, 240, 255, 0.1)' },
-  radarWave: { position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: '#00F0FF', backgroundColor: 'rgba(0, 240, 255, 0.1)' },
-  radarCenter: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0, 240, 255, 0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#00F0FF' },
-  radarStatusText: { color: '#8BA3C9', fontSize: 12, textAlign: 'center', marginTop: 15, fontWeight: '600' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20 },
-  chartCard: { padding: 20, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)', marginBottom: 20 },
-  chartContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 120, marginTop: 20, paddingHorizontal: 10 },
-  chartBarWrapper: { alignItems: 'center', width: 30 },
-  chartBarBg: { width: 12, height: 90, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
-  chartBarFill: { width: '100%', borderRadius: 6 },
-  chartLabel: { color: '#8BA3C9', fontSize: 10, marginTop: 8, fontWeight: '600' },
+
+  statusBanner: { marginTop: 20, padding: 16, borderRadius: 16, borderWidth: 1 },
+  statusUrgent: { backgroundColor: 'rgba(255, 42, 42, 0.05)', borderColor: 'rgba(255, 42, 42, 0.3)' },
+  statusSafe: { backgroundColor: 'rgba(0, 255, 102, 0.05)', borderColor: 'rgba(0, 255, 102, 0.2)' },
+  statusHeader: { marginBottom: 8 },
+  pulseDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
+  statusText: { fontSize: 14, fontWeight: 'bold', letterSpacing: 1 },
+  statusDesc: { color: '#8BA3C9', fontSize: 12, lineHeight: 18, fontWeight: '600' },
+
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20, marginBottom: 10 },
+  sectionTitle: { color: '#FFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 1, marginTop: 10, marginBottom: 15 },
+
   logItem: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
   logIndicator: { width: 4, height: '100%', borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
   logContent: { flex: 1, padding: 12 },
-  logHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  logType: { color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  logHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  logType: { color: '#FFF', fontSize: 13, fontWeight: 'bold' },
   logTime: { color: '#8BA3C9', fontSize: 11 },
   logLocation: { color: '#8BA3C9', fontSize: 12, fontWeight: '600' },
-  actionBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, marginRight: 12 },
-  actionBtnText: { color: '#00F0FF', fontSize: 11, fontWeight: 'bold' },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(0, 240, 255, 0.1)', borderRadius: 8, marginRight: 12 },
+  actionBtnText: { color: '#00F0FF', fontSize: 11, fontWeight: 'bold', marginRight: 4 },
+
+  emptyLogsContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  emptyLogsText: { color: '#8BA3C9', fontSize: 13, marginTop: 10, fontWeight: '600' },
 });

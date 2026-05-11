@@ -4,10 +4,11 @@ import { router } from "expo-router";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
-
+import * as Location from 'expo-location';
 import { CATEGORIES } from "@/app/ـcomponents/report-components/CategoryGrid";
-import { submitReport } from "../../services/reportService";
-import { EmergencyType, ReportPriority } from "../../types";
+import { submitReport } from "@/services/reportService";
+import { EmergencyType, ReportPriority } from "@/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query"; 
 
 export type MediaFile = {
   name: string;
@@ -15,62 +16,56 @@ export type MediaFile = {
   url?: string;
 };
 
-export interface ReportStore {
-  selectedCategory: EmergencyType | null;
-  priority: ReportPriority | null;
-  description: string;
-  selectedCollege: string | null;
-  mediaFile: MediaFile | null;
-  mediaLoading: boolean;
-  submitting: boolean;
-  error: string | null;
-  clearError: () => void;
-  fadeAnim: Animated.Value;
-  slideAnim: Animated.Value;
-  submitScale: Animated.Value;
+export function useReportStore() {
+  const queryClient = useQueryClient();
 
-  setSelectedCategory: (category: EmergencyType) => void;
-  setDescription: (text: string) => void;
-  setSelectedCollege: (college: string) => void;
-  handlePickMedia: () => Promise<void>;
-  handleSubmit: () => Promise<void>;
-}
-
-export function useReportStore(): ReportStore {
-  const [selectedCategory, setSelectedCategoryRaw] =
-    useState<EmergencyType | null>(null);
+  const [selectedCategory, setSelectedCategoryRaw] = useState<EmergencyType | null>(null);
   const [priority, setPriority] = useState<ReportPriority | null>(null);
   const [description, setDescription] = useState("");
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [mediaLoading, setMediaLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const submitScale = useRef(new Animated.Value(1)).current;
 
-  const clearError = () => setError(null);
+  const reportMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCategory) throw new Error("يرجى اختيار نوع الطارئ");
+
+      return await submitReport({
+        userId: auth.currentUser?.uid ?? "unknown",
+        type: selectedCategory,
+        description: description.trim() || "لا يوجد وصف",
+        location: selectedCollege ?? "غير محدد",
+        ...(priority && { priority }),
+        ...(mediaFile?.url && { imageUrl: mediaFile.url }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myReports'] });
+
+      Alert.alert("تم الإرسال ", "تم إرسال بلاغك بنجاح.", [
+        { text: "حسناً", onPress: () => router.back() }
+      ]);
+    },
+    onError: (err: any) => {
+      Alert.alert("خطأ", err.message || "فشل إرسال البلاغ");
+    }
+  });
 
   const setSelectedCategory = (category: EmergencyType) => {
     setSelectedCategoryRaw(category);
-    const match = CATEGORIES.find(
-      (c: (typeof CATEGORIES)[number]) => c.type === category,
-    );
+    const match = CATEGORIES.find((c) => c.type === category);
     setPriority(match?.priority ?? null);
   };
 
   const handlePickMedia = async () => {
     setMediaLoading(true);
-    clearError();
     try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        setError("لا يوجد صلاحية للوصول إلى مكتبة الصور. تحقق من الإعدادات.");
-        return;
-      }
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") return;
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -85,67 +80,29 @@ export function useReportStore(): ReportStore {
       const blob = await response.blob();
       const uid = auth.currentUser?.uid;
 
-      if (!uid) {
-        setError("يجب تسجيل الدخول أولاً لرفع الملفات.");
-        return;
-      }
+      if (!uid) return;
 
       const timestamp = Date.now();
-      const fileName = asset.fileName ?? `photo_${timestamp}.jpg`;
-      const storagePath = `report-media/${uid}/${timestamp}_${fileName}`;
-      const storageRef = ref(storage, storagePath);
+      const fileName = `photo_${timestamp}.jpg`;
+      const storageRef = ref(storage, `report-media/${uid}/${timestamp}_${fileName}`);
       await uploadBytes(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
 
       setMediaFile({ name: fileName, type: "image", url: downloadURL });
-    } catch {
-      setError("فشل رفع الملف. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
+    } catch (e) {
+      console.error(e);
     } finally {
       setMediaLoading(false);
     }
   };
 
   const handleSubmit = async () => {
-    if (!selectedCategory) {
-      Alert.alert("تنبيه", "يرجى اختيار نوع الطارئ أولاً.");
-      return;
-    }
-
     Animated.sequence([
-      Animated.timing(submitScale, {
-        toValue: 0.94,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(submitScale, {
-        toValue: 1,
-        duration: 80,
-        useNativeDriver: true,
-      }),
+      Animated.timing(submitScale, { toValue: 0.94, duration: 80, useNativeDriver: true }),
+      Animated.timing(submitScale, { toValue: 1, duration: 80, useNativeDriver: true }),
     ]).start();
 
-    setSubmitting(true);
-    clearError();
-    try {
-      await submitReport({
-        userId: auth.currentUser?.uid ?? "unknown",
-        type: selectedCategory,
-        description: description.trim() || "لا يوجد وصف",
-        location: selectedCollege ?? "غير محدد",
-        ...(priority && { priority }),
-        ...(mediaFile?.url && { imageUrl: mediaFile.url }),
-      });
-
-      Alert.alert(
-        "تم الإرسال ✅",
-        "تم إرسال بلاغك بنجاح. سيتم التواصل معك قريباً.",
-        [{ text: "حسناً", onPress: () => router.back() }],
-      );
-    } catch {
-      setError("فشل إرسال البلاغ. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
-    } finally {
-      setSubmitting(false);
-    }
+    reportMutation.mutate();
   };
 
   return {
@@ -155,9 +112,9 @@ export function useReportStore(): ReportStore {
     selectedCollege,
     mediaFile,
     mediaLoading,
-    submitting,
-    error,
-    clearError,
+    submitting: reportMutation.isPending, 
+    error: reportMutation.isError ? "فشل الإرسال" : null,
+    clearError: () => reportMutation.reset(),
     fadeAnim,
     slideAnim,
     submitScale,
