@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { auth } from "../../config/firebaseConfig";
 import { COLORS } from "../../constants/colors";
+import { useTheme } from "@/context/ThemeContext";
 
 const APP_VERSION = "1.0.0";
 
@@ -23,6 +24,8 @@ export default function Settings() {
   const [emergencySound, setEmergencySound] = useState(true);
   const [locationSharing, setLocationSharing] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+
+  const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -53,21 +56,30 @@ export default function Settings() {
   const email = user?.email ?? "";
   const uid = user?.uid?.slice(0, 8) ?? "—";
 
+  const theme = {
+    background: isDark ? "#0F172A" : "#F8F9FA",
+    surface: isDark ? "#1E293B" : "#FFFFFF",
+    textPrimary: isDark ? "#F8FAFC" : "#1E293B",
+    textSecondary: isDark ? "#94A3B8" : "#64748B",
+    border: isDark ? "#334155" : "#E2E8F0",
+    cardShadow: isDark ? "transparent" : "#000",
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { backgroundColor: theme.surface, shadowColor: theme.cardShadow }]}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{fullName.charAt(0)}</Text>
           </View>
 
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{fullName}</Text>
-            <Text style={styles.profileEmail}>{email}</Text>
+            <Text style={[styles.profileName, { color: theme.textPrimary }]}>{fullName}</Text>
+            <Text style={[styles.profileEmail, { color: theme.textSecondary }]}>{email}</Text>
             <View style={styles.roleBadge}>
               <Text style={styles.roleBadgeText}>طالب</Text>
             </View>
@@ -78,91 +90,75 @@ export default function Settings() {
           </TouchableOpacity>
         </View>
 
-        <SectionHeader title="الحساب" icon="person-circle" />
-        <View style={styles.group}>
+        {/* قسم المظهر (Dark Mode) */}
+        <SectionHeader title="المظهر" icon="color-palette" color={theme.textSecondary} />
+        <View style={[styles.group, { backgroundColor: theme.surface }]}>
           <SettingRow
-            icon="id-card"
-            iconBg="#E3F2FD"
-            iconColor="#1565C0"
-            title="معرّف المستخدم"
-            subtitle={uid}
+            icon={isDark ? "moon" : "sunny"}
+            iconBg={isDark ? "#334155" : "#FFF3E0"}
+            iconColor={isDark ? "#38BDF8" : "#F59E0B"}
+            title="الوضع الليلي"
+            subtitle="تبديل مظهر التطبيق بالكامل"
+            toggle
+            toggleValue={isDark}
+            onToggle={toggleTheme}
+            theme={theme}
           />
         </View>
 
-        <SectionHeader title="الإشعارات" icon="notifications" />
-        <View style={styles.group}>
+        <SectionHeader title="الحساب" icon="person-circle" color={theme.textSecondary} />
+        <View style={[styles.group, { backgroundColor: theme.surface }]}>
+          <SettingRow
+            icon="id-card"
+            iconBg={isDark ? "#334155" : "#E3F2FD"}
+            iconColor={isDark ? "#38BDF8" : "#1565C0"}
+            title="معرّف المستخدم"
+            subtitle={uid}
+            theme={theme}
+          />
+        </View>
+
+        <SectionHeader title="الإشعارات" icon="notifications" color={theme.textSecondary} />
+        <View style={[styles.group, { backgroundColor: theme.surface }]}>
           <SettingRow
             icon="notifications"
-            iconBg="#E8F5E9"
-            iconColor="#2E7D32"
+            iconBg={isDark ? "#334155" : "#E8F5E9"}
+            iconColor={isDark ? "#4ADE80" : "#2E7D32"}
             title="إشعارات الطوارئ"
-            subtitle="تلقي تنبيهات الحوادث الجديدة"
             toggle
             toggleValue={pushNotifications}
             onToggle={setPushNotifications}
+            theme={theme}
           />
-          <Divider />
+          <Divider color={theme.border} />
           <SettingRow
             icon="volume-high"
-            iconBg="#FFF3E0"
-            iconColor="#E65100"
+            iconBg={isDark ? "#334155" : "#FFF3E0"}
+            iconColor={isDark ? "#FB923C" : "#E65100"}
             title="صوت الطوارئ"
-            subtitle="تشغيل صوت تنبيه عند الحوادث الحرجة"
             toggle
             toggleValue={emergencySound}
             onToggle={setEmergencySound}
+            theme={theme}
           />
         </View>
 
-        <SectionHeader title="الخصوصية" icon="shield-checkmark" />
-        <View style={styles.group}>
+        <SectionHeader title="الخصوصية" icon="shield-checkmark" color={theme.textSecondary} />
+        <View style={[styles.group, { backgroundColor: theme.surface }]}>
           <SettingRow
             icon="location"
-            iconBg="#FFEBEE"
-            iconColor="#C62828"
+            iconBg={isDark ? "#334155" : "#FFEBEE"}
+            iconColor={isDark ? "#F87171" : "#C62828"}
             title="مشاركة الموقع"
-            subtitle="إرسال موقعك عند إرسال البلاغات"
             toggle
             toggleValue={locationSharing}
             onToggle={setLocationSharing}
-          />
-          <Divider />
-          <SettingRow
-            icon="bar-chart"
-            iconBg="#F3F4F6"
-            iconColor="#6B7280"
-            title="تحسين التطبيق"
-            subtitle="مشاركة بيانات الاستخدام مجهولة الهوية"
-            toggle
-            toggleValue={analyticsEnabled}
-            onToggle={setAnalyticsEnabled}
-          />
-        </View>
-
-        <SectionHeader title="حول التطبيق" icon="information-circle" />
-        <View style={styles.group}>
-          <SettingRow
-            icon="document-text"
-            iconBg="#E8F5E9"
-            iconColor="#2E7D32"
-            title="شروط الاستخدام"
-            onPress={() =>
-              Alert.alert("شروط الاستخدام", "سيتم فتح الشروط قريباً.")
-            }
-            showChevron
-          />
-          <Divider />
-          <SettingRow
-            icon="code-slash"
-            iconBg="#E3F2FD"
-            iconColor="#1565C0"
-            title="إصدار التطبيق"
-            subtitle={`v${APP_VERSION}`}
+            theme={theme}
           />
         </View>
 
         <TouchableOpacity
-          style={styles.logoutBtn}
+          style={[styles.logoutBtn, isDark && { backgroundColor: "#2D1B1B", borderColor: "#451A1A" }]}
           onPress={handleLogout}
           activeOpacity={0.8}
         >
@@ -176,25 +172,19 @@ export default function Settings() {
   );
 }
 
-function SectionHeader({ title, icon }: { title: string; icon: string }) {
+// --- المكونات الفرعية (Sub-components) ---
+
+function SectionHeader({ title, icon, color }: { title: string; icon: string; color: string }) {
   return (
     <View style={section.row}>
-      <Ionicons name={icon as any} size={15} color={COLORS.textSecondary} />
-      <Text style={section.text}>{title}</Text>
+      <Ionicons name={icon as any} size={15} color={color} />
+      <Text style={[section.text, { color: color }]}>{title}</Text>
     </View>
   );
 }
 
-function Divider() {
-  return (
-    <View
-      style={{
-        height: 1,
-        backgroundColor: COLORS.border,
-        marginHorizontal: 16,
-      }}
-    />
-  );
+function Divider({ color }: { color: string }) {
+  return <View style={{ height: 1, backgroundColor: color, marginHorizontal: 16 }} />;
 }
 
 interface SettingRowProps {
@@ -208,6 +198,7 @@ interface SettingRowProps {
   toggle?: boolean;
   toggleValue?: boolean;
   onToggle?: (value: boolean) => void;
+  theme: any;
 }
 
 function SettingRow({
@@ -221,6 +212,7 @@ function SettingRow({
   toggle,
   toggleValue,
   onToggle,
+  theme
 }: SettingRowProps) {
   return (
     <TouchableOpacity
@@ -234,175 +226,64 @@ function SettingRow({
       </View>
 
       <View style={row.textBlock}>
-        <Text style={row.title}>{title}</Text>
-        {subtitle && <Text style={row.subtitle}>{subtitle}</Text>}
+        <Text style={[row.title, { color: theme.textPrimary }]}>{title}</Text>
+        {subtitle && <Text style={[row.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>}
       </View>
 
       {showChevron && (
-        <Ionicons
-          name="chevron-back"
-          size={18}
-          color={COLORS.textSecondary}
-          style={{ opacity: 0.5 }}
-        />
+        <Ionicons name="chevron-back" size={18} color={theme.textSecondary} style={{ opacity: 0.5 }} />
       )}
       {toggle && (
         <Switch
           value={toggleValue}
           onValueChange={onToggle}
-          trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
-          thumbColor={toggleValue ? COLORS.primary : COLORS.surface}
+          trackColor={{ false: theme.border, true: COLORS.primaryLight }}
+          thumbColor={toggleValue ? COLORS.primary : "#F4F3F4"}
         />
       )}
     </TouchableOpacity>
   );
 }
 
+
 const section = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 28,
-    marginBottom: 10,
-    paddingHorizontal: 4,
-  },
-  text: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+  row: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 28, marginBottom: 10, paddingHorizontal: 4 },
+  text: { fontSize: 13, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
 });
 
 const row = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 14,
-  },
-  iconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 14 },
+  iconWrapper: { width: 36, height: 36, borderRadius: 10, justifyContent: "center", alignItems: "center" },
   textBlock: { flex: 1 },
-  title: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    textAlign: "right",
-  },
-  subtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
-    marginTop: 2,
-    textAlign: "right",
-  },
+  title: { fontSize: 15, fontWeight: "700", textAlign: "right" },
+  subtitle: { fontSize: 12, fontWeight: "500", marginTop: 2, textAlign: "right" },
 });
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8F9FA" },
+  safeArea: { flex: 1 },
   scroll: { flex: 1 },
-  content: {
-    padding: 20,
-    width: "100%",
-    maxWidth: 450,
-    alignSelf: "center",
-  },
+  content: { padding: 20, width: "100%", maxWidth: 450, alignSelf: "center" },
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.surface,
     borderRadius: 24,
     padding: 20,
     marginTop: 10,
     gap: 14,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 3,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: COLORS.primary,
-  },
+  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.primaryLight, justifyContent: "center", alignItems: "center" },
+  avatarText: { fontSize: 22, fontWeight: "900", color: COLORS.primary },
   profileInfo: { flex: 1 },
-  profileName: {
-    fontSize: 17,
-    fontWeight: "900",
-    color: COLORS.textPrimary,
-    textAlign: "right",
-  },
-  profileEmail: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
-    marginTop: 2,
-    textAlign: "right",
-  },
-  roleBadge: {
-    alignSelf: "flex-end",
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
-    marginTop: 6,
-  },
-  roleBadgeText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: COLORS.primary,
-  },
-  editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  group: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  logoutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    marginTop: 32,
-    paddingVertical: 16,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: COLORS.primaryLight,
-    backgroundColor: "#FFF5F5",
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.primary,
-  },
+  profileName: { fontSize: 17, fontWeight: "900", textAlign: "right" },
+  profileEmail: { fontSize: 12, fontWeight: "500", marginTop: 2, textAlign: "right" },
+  roleBadge: { alignSelf: "flex-end", backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginTop: 6 },
+  roleBadgeText: { fontSize: 11, fontWeight: "800", color: COLORS.primary },
+  editBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight, justifyContent: "center", alignItems: "center" },
+  group: { borderRadius: 20, overflow: "hidden", elevation: 2 },
+  logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 32, paddingVertical: 16, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.primaryLight, backgroundColor: "#FFF5F5" },
+  logoutText: { fontSize: 16, fontWeight: "800", color: COLORS.primary },
 });

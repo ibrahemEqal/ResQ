@@ -1,6 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { ScrollView, Text, View } from 'react-native';
+import { auth, db } from '@/config/firebaseConfig'; 
+import { doc, getDoc } from 'firebase/firestore';
 
 import { InfoCard } from '@/app/ـcomponents/InfoCard';
 import { ReportActions } from '@/app/ـcomponents/ReportActions';
@@ -12,6 +14,7 @@ import { statusArabic } from './utils/statusMap';
 
 export default function IncidentDetailsPage() {
   const { id } = useLocalSearchParams();
+  const [userRole, setUserRole] = useState<string>('user'); 
 
   const {
     report,
@@ -22,6 +25,19 @@ export default function IncidentDetailsPage() {
     handleUpdateStatus,
     loading,
   } = useIncidentDetails(id);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role || 'user');
+        }
+      }
+    };
+    fetchUserRole();
+  }, []);
 
   if (loading) {
     return (
@@ -58,10 +74,12 @@ export default function IncidentDetailsPage() {
 
       <TimelineSection timeline={timeline} />
 
-      <ReportActions
-        onAssignResponder={handleAssignResponder}
-        onUpdateStatus={handleUpdateStatus}
-      />
+      {(userRole === 'admin' || userRole === 'responder') && (
+        <ReportActions
+          onAssignResponder={handleAssignResponder}
+          onUpdateStatus={handleUpdateStatus}
+        />
+      )}
     </ScrollView>
   );
 }
