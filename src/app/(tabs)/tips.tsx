@@ -70,7 +70,6 @@ export default function Tips() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* التدرج اللوني يتغير بناءً على الثيم */}
             <LinearGradient
                 colors={isDark ? ['#0F172A', '#020617'] : ['#F8F9FA', '#E2E8F0']}
                 style={StyleSheet.absoluteFill}
