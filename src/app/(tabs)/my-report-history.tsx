@@ -63,7 +63,6 @@ export default function ReportsScreen() {
 
     useLayoutEffect(() => {
         navigation.setOptions({
-            // تخصيص الهيدر بناءً على الثيم
             headerStyle: {
                 backgroundColor: isDark ? colors.surface : colors.primary,
             },
@@ -104,7 +103,6 @@ export default function ReportsScreen() {
                 renderItem={({ item }) => (
                     <ReportCard
                         report={item}
-                    // الـ ReportCard يفترض أن يأخذ ثيمه داخلياً أو عبر الـ Context
                     />
                 )}
                 ListHeaderComponent={
