@@ -17,6 +17,9 @@ interface Props {
 
 export default function MediaButton({ mediaFile, loading, onPress }: Props) {
   const isSet = mediaFile !== null;
+  const activeLabel = mediaFile?.url
+    ? "تم رفع الصورة"
+    : "صورة محفوظة محليًا";
 
   return (
     <TouchableOpacity
@@ -36,13 +39,13 @@ export default function MediaButton({ mediaFile, loading, onPress }: Props) {
       )}
 
       <Text style={[styles.label, isSet && styles.labelActive]}>
-        {isSet ? "تم الإرفاق" : "إرفاق صورة / صوت"}
+        {isSet ? activeLabel : "إرفاق صورة"}
       </Text>
 
       {isSet && mediaFile && (
         <View style={styles.chip}>
           <Ionicons
-            name={mediaFile.type === "image" ? "image-outline" : "mic-outline"}
+            name="image-outline"
             size={12}
             color={COLORS.warning}
           />

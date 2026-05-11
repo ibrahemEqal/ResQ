@@ -1,25 +1,39 @@
-import { auth, storage } from "@/config/firebaseConfig";
-import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { useRef, useState } from "react";
-import { Alert, Animated } from "react-native";
-import * as Location from 'expo-location';
 import { CATEGORIES } from "@/app/ـcomponents/report-components/CategoryGrid";
+import { auth } from "@/config/firebaseConfig";
+import { uploadImageToCloudinary } from "@/services/cloudinaryService";
 import { submitReport } from "@/services/reportService";
 import { EmergencyType, ReportPriority } from "@/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query"; 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
+import { useRef, useState } from "react";
+import { Alert, Animated } from "react-native";
 
 export type MediaFile = {
   name: string;
-  type: "image" | "audio";
+  type: "image";
+  uri: string;
   url?: string;
+  publicId?: string;
+};
+
+const getFileExtension = (uri: string, fallback = "jpg") => {
+  const cleanUri = uri.split("?")[0].split("#")[0];
+  const match = cleanUri.match(/\.([a-zA-Z0-9]+)$/);
+  return (match?.[1] ?? fallback).toLowerCase();
+};
+
+const getImageMimeType = (extension: string, mimeType?: string | null) => {
+  if (mimeType) return mimeType;
+  if (extension === "jpg") return "image/jpeg";
+  return `image/${extension}`;
 };
 
 export function useReportStore() {
   const queryClient = useQueryClient();
 
-  const [selectedCategory, setSelectedCategoryRaw] = useState<EmergencyType | null>(null);
+  const [selectedCategory, setSelectedCategoryRaw] =
+    useState<EmergencyType | null>(null);
   const [priority, setPriority] = useState<ReportPriority | null>(null);
   const [description, setDescription] = useState("");
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
@@ -44,15 +58,15 @@ export function useReportStore() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myReports'] });
+      queryClient.invalidateQueries({ queryKey: ["myReports"] });
 
       Alert.alert("تم الإرسال ", "تم إرسال بلاغك بنجاح.", [
-        { text: "حسناً", onPress: () => router.back() }
+        { text: "حسناً", onPress: () => router.back() },
       ]);
     },
     onError: (err: any) => {
       Alert.alert("خطأ", err.message || "فشل إرسال البلاغ");
-    }
+    },
   });
 
   const setSelectedCategory = (category: EmergencyType) => {
@@ -64,11 +78,12 @@ export function useReportStore() {
   const handlePickMedia = async () => {
     setMediaLoading(true);
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") return;
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: false,
         quality: 0.8,
       });
@@ -76,21 +91,32 @@ export function useReportStore() {
       if (result.canceled || !result.assets?.length) return;
 
       const asset = result.assets[0];
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const uid = auth.currentUser?.uid;
-
-      if (!uid) return;
-
       const timestamp = Date.now();
-      const fileName = `photo_${timestamp}.jpg`;
-      const storageRef = ref(storage, `report-media/${uid}/${timestamp}_${fileName}`);
-      await uploadBytes(storageRef, blob);
-      const downloadURL = await getDownloadURL(storageRef);
+      const extension = getFileExtension(asset.fileName || asset.uri, "jpg");
+      const fileName = asset.fileName || `photo_${timestamp}.${extension}`;
+      const mimeType = getImageMimeType(extension, asset.mimeType);
+      const uploadedImage = await uploadImageToCloudinary({
+        uri: asset.uri,
+        fileName,
+        mimeType,
+      });
 
-      setMediaFile({ name: fileName, type: "image", url: downloadURL });
+      setMediaFile({
+        name: fileName,
+        type: "image",
+        uri: asset.uri,
+        url: uploadedImage.optimizedUrl,
+        publicId: uploadedImage.publicId,
+      });
     } catch (e) {
-      console.error(e);
+      const message = e instanceof Error ? e.message : "فشل رفع الصورة";
+      Alert.alert("خطأ", message, [
+        {
+          text: "الإعدادات",
+          onPress: () => router.push("/(tabs)/settings" as any),
+        },
+        { text: "حسنًا", style: "cancel" },
+      ]);
     } finally {
       setMediaLoading(false);
     }
@@ -98,8 +124,16 @@ export function useReportStore() {
 
   const handleSubmit = async () => {
     Animated.sequence([
-      Animated.timing(submitScale, { toValue: 0.94, duration: 80, useNativeDriver: true }),
-      Animated.timing(submitScale, { toValue: 1, duration: 80, useNativeDriver: true }),
+      Animated.timing(submitScale, {
+        toValue: 0.94,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(submitScale, {
+        toValue: 1,
+        duration: 80,
+        useNativeDriver: true,
+      }),
     ]).start();
 
     reportMutation.mutate();
@@ -112,7 +146,7 @@ export function useReportStore() {
     selectedCollege,
     mediaFile,
     mediaLoading,
-    submitting: reportMutation.isPending, 
+    submitting: reportMutation.isPending,
     error: reportMutation.isError ? "فشل الإرسال" : null,
     clearError: () => reportMutation.reset(),
     fadeAnim,

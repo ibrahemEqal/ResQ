@@ -2,7 +2,13 @@
   "expo": {
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "اسمح لتطبيق ResQ باستخدام الميكروفون لتسجيل بلاغ صوتي."
+        }
+      ]
     ],
     "scheme": "resq",
     "experiments": {
