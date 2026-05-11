@@ -172,7 +172,6 @@ export default function Settings() {
   );
 }
 
-// --- المكونات الفرعية (Sub-components) ---
 
 function SectionHeader({ title, icon, color }: { title: string; icon: string; color: string }) {
   return (
