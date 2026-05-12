@@ -192,7 +192,6 @@ export default function Home() {
             <Text style={[styles.cardDesc, { color: colors.subText }]}>متابعة البلاغات</Text>
           </TouchableOpacity>
 
-          {/* Card 4: History */}
           <TouchableOpacity
             style={[styles.premiumCard, { backgroundColor: colors.surface }]}
             activeOpacity={0.8}
@@ -221,7 +220,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-  /* Header Styles */
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -273,7 +271,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
-  /* SOS Button Styles */
   sosContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -318,7 +315,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* Premium Cards Grid */
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
