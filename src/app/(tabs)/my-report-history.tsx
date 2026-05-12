@@ -97,7 +97,7 @@ export default function ReportsScreen() {
                         refreshing={isRefetching}
                         onRefresh={refetch}
                         colors={[colors.primary]}
-                        tintColor={colors.primary} // للـ iOS
+                        tintColor={colors.primary} 
                     />
                 }
                 renderItem={({ item }) => (
