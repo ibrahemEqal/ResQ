@@ -5,96 +5,35 @@ import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import React, { useState } from 'react';
+import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RFValue } from 'react-native-responsive-fontsize';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function SignupScreen() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading,setLoading]=useState(false);
-
-  const [errors, setErrors] = useState({
+ 
+const {
+  control,
+  handleSubmit,
+  watch,
+  formState: { errors },
+} = useForm({
+  defaultValues: {
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-  });
+  },
+});
 
-  const validate = () => {
-    let valid = true;
-    const newErrors = {
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    };
+const password = watch('password');
 
-    if (!fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-      valid = false;
-    }
-
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-      valid = false;
-    }
-
-    if (!password.trim()) {
-      newErrors.password = 'Password is required';
-      valid = false;
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-      valid = false;
-    }
-
-    if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Please confirm your password';
-      valid = false;
-    } else if (confirmPassword !== password) {
-      newErrors.confirmPassword = 'Passwords do not match';
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleSignup =async () => {
-    if (validate()) {
-      setLoading(true);
-      try{
-        const userCredential=await createUserWithEmailAndPassword(auth,email,password);
-        const user=userCredential.user;
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          fullName: fullName,
-          email: email,
-          role: "student",
-          createdAt: new Date().toISOString()
-        });
-
-        Alert.alert('Success', 'Account created successfully');
-        
-        router.replace('/home'); 
-
-      } catch (error: any) {
-        if (error.code === 'auth/email-already-in-use') {
-          Alert.alert('Error', 'هذا البريد الإلكتروني مستخدم مسبقاً');
-        } else if (error.code === 'auth/invalid-email') {
-          Alert.alert('Error', 'صيغة البريد الإلكتروني غير صحيحة');
-        } else {
-          Alert.alert('Error', error.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+const onSubmit = () => {
+  Alert.alert('Success', 'Account created successfully');
+};
+ 
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -107,47 +46,72 @@ export default function SignupScreen() {
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Sign up to get started</Text>
 
-            <CustomInput
-              label="Full Name"
-              iconName="person-outline"
-              placeholder="Enter your full name"
-              value={fullName}
-              onChangeText={setFullName}
-              error={errors.fullName}
+            <Controller
+              control={control}
+              name="email"
+              rules={{
+                required: 'Email is required',
+                pattern: {
+                  value: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+                  message: 'Please enter a valid email',
+                },
+              }}
+              render={({ field: { value, onChange } }) => (
+                <CustomInput
+                  label="Email"
+                  iconName="mail-outline"
+                  placeholder="Enter your email"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.email?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="password"
+              rules={{
+                required: 'Password is required',
+                minLength: {
+                  value: 6,
+                  message: 'Password must be at least 6 characters',
+                },
+              }}
+              render={({ field: { value, onChange } }) => (
+                <CustomInput
+                  label="Password"
+                  iconName="lock-closed-outline"
+                  placeholder="Create password"
+                  secureTextEntry
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.password?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="confirmPassword"
+              rules={{
+                required: 'Please confirm your password',
+                validate: (value) => value === password || 'Passwords do not match',
+              }}
+              render={({ field: { value, onChange } }) => (
+                <CustomInput
+                  label="Confirm Password"
+                  iconName="lock-closed-outline"
+                  placeholder="Re-enter password"
+                  secureTextEntry
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.confirmPassword?.message}
+                />
+              )}
             />
 
-            <CustomInput
-              label="Email"
-              iconName="mail-outline"
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-              error={errors.email}
-            />
-
-            <CustomInput
-              label="Password"
-              iconName="lock-closed-outline"
-              placeholder="Create password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              error={errors.password}
-            />
-
-            <CustomInput
-              label="Confirm Password"
-              iconName="lock-closed-outline"
-              placeholder="Re-enter password"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              error={errors.confirmPassword}
-            />
-
-            <TouchableOpacity style={styles.button} onPress={handleSignup}>
+            <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
               <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
@@ -197,3 +161,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+              

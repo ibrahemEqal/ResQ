@@ -160,7 +160,7 @@ export default function Home() {
             <Text style={[styles.cardDesc, { color: colors.subText }]}>كيف تتصرف؟</Text>
           </TouchableOpacity>
 
-          {(userRole === 'security' || userRole === 'admin') && (
+          {(userRole === 'responder' || userRole === 'admin') && (
             <TouchableOpacity
               style={[styles.premiumCard, { backgroundColor: colors.surface }]}
               onPress={() => router.push("/(tabs)/dashboard")}

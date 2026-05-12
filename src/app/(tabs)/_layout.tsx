@@ -7,7 +7,7 @@ import { UserRole } from "@/types";
 export default function TabLayout() {
     const { colors, isDark } = useAppTheme();
 
-    const userRole = "user" as UserRole;
+    const userRole = "student" as UserRole;
     return (
         <Tabs
             screenOptions={{
