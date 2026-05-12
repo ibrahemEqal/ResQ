@@ -65,7 +65,7 @@ export default function LoginScreen() {
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
           
-          if (userData.role === 'security' || userData.role === 'admin') {
+          if (userData.role === 'responder' || userData.role === 'admin') {
             router.replace('/(tabs)/dashboard');          } else {
             router.replace('/home');
           }

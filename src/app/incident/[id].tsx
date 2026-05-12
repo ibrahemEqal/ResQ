@@ -14,7 +14,7 @@ import { statusArabic } from './utils/statusMap';
 
 export default function IncidentDetailsPage() {
   const { id } = useLocalSearchParams();
-  const [userRole, setUserRole] = useState<string>('user'); 
+  const [userRole, setUserRole] = useState<string>('student'); 
 
   const {
     report,
@@ -32,7 +32,7 @@ export default function IncidentDetailsPage() {
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
-          setUserRole(userDoc.data().role || 'user');
+          setUserRole(userDoc.data().role || 'student');
         }
       }
     };
