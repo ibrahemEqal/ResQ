@@ -22,23 +22,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function LoginScreen() {
+  type FormData = {
+  email: string;
+  password: string;
+};
  
-const {
-  control,
-  handleSubmit,
-  formState: { errors },
-} = useForm({
+const { control,handleSubmit, formState: { errors },} =useForm<FormData>({
   defaultValues: {
     email: '',
     password: '',
   },
 });
 
-const onSubmit = () => {
-  router.replace('/home');
-};
-  
+const onSubmit = async (data: FormData) => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      data.email,
+      data.password
+    );
 
+    router.replace('/home');
+
+  } catch (error) {
+    Alert.alert(
+      'Login Failed',
+      'Email or password is incorrect'
+    );
+  }
+};
   
 
   return (
