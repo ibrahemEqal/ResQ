@@ -30,8 +30,22 @@ const {
 
 const password = watch('password');
 
-const onSubmit = () => {
-  Alert.alert('Success', 'Account created successfully');
+const onSubmit = async (data: any) => {
+  try {
+
+    await createUserWithEmailAndPassword(
+      auth,
+      data.email,
+      data.password
+    );
+
+    Alert.alert('Success', 'Account created successfully');
+
+   router.replace('/home');
+
+  } catch (error) {
+    Alert.alert('Error', 'Something went wrong');
+  }
 };
  
 
