@@ -5,7 +5,8 @@ import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { useState } from 'react';
+import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -21,71 +22,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading,setLoading]=useState(false);
-
-  const [errors, setErrors] = useState({
+ 
+const {
+  control,
+  handleSubmit,
+  formState: { errors },
+} = useForm({
+  defaultValues: {
     email: '',
     password: '',
-  });
+  },
+});
 
-  const validate = () => {
-    let valid = true;
-    const newErrors = {
-      email: '',
-      password: '',
-    };
+const onSubmit = () => {
+  router.replace('/home');
+};
+  
 
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-      valid = false;
-    }
-
-    if (!password.trim()) {
-      newErrors.password = 'Password is required';
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleLogin = async () => {
-    if (validate()) {
-      setLoading(true); 
-      
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const userUid = userCredential.user.uid;
-        
-        const userDocRef = doc(db, "users", userUid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          
-          if (userData.role === 'responder' || userData.role === 'admin') {
-            router.replace('/(tabs)/dashboard');          } else {
-            router.replace('/home');
-          }
-        } else {
-          router.replace('/home'); 
-        }
-
-      } catch (error: any) {
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-          Alert.alert('خطأ', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
-        } else if (error.code === 'auth/invalid-email') {
-          Alert.alert('خطأ', 'صيغة البريد الإلكتروني غير صحيحة');
-        } else {
-          Alert.alert('حدث خطأ', error.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+  
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -99,28 +53,45 @@ export default function LoginScreen() {
               <Text style={styles.title}>Welcome Back</Text>
               <Text style={styles.subtitle}>Login to continue</Text>
 
-              <CustomInput
-                label="Email"
-                iconName="mail-outline"
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                error={errors.email}
-              />
+              <Controller
+  control={control}
+  name="email"
+  rules={{
+    required: 'Email is required',
+  }}
+  render={({ field: { value, onChange } }) => (
+    <CustomInput
+      label="Email"
+      iconName="mail-outline"
+      placeholder="Enter your email"
+      keyboardType="email-address"
+      autoCapitalize="none"
+      value={value}
+      onChangeText={onChange}
+      error={errors.email?.message}
+    />
+  )}
+/>
+              <Controller
+  control={control}
+  name="password"
+  rules={{
+    required: 'Password is required',
+  }}
+  render={({ field: { value, onChange } }) => (
+    <CustomInput
+      label="Password"
+      iconName="lock-closed-outline"
+      placeholder="Enter your password"
+      secureTextEntry
+      value={value}
+      onChangeText={onChange}
+      error={errors.password?.message}
+    />
+  )}
+/>
 
-              <CustomInput
-                label="Password"
-                iconName="lock-closed-outline"
-                placeholder="Enter your password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                error={errors.password}
-              />
-
-              <TouchableOpacity style={styles.button} onPress={handleLogin}>
+              <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
