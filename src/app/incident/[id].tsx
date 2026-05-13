@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { ResponderPickerModal } from './ResponderPickerModal';
 import { auth, db } from '@/config/firebaseConfig'; 
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -16,7 +17,8 @@ import { statusArabic } from './utils/statusMap';
 
 export default function IncidentDetailsPage() {
   const { id } = useLocalSearchParams();
-  const [userRole, setUserRole] = useState<string>('student'); 
+  const [userRole, setUserRole] = useState<string>('student');
+  const [isResponderModalVisible, setIsResponderModalVisible] = useState(false);
 
   const {
     report,
@@ -112,10 +114,19 @@ export default function IncidentDetailsPage() {
 
       {(userRole === 'admin' || userRole === 'responder') && (
         <ReportActions
-          onAssignResponder={handleAssignResponder}
+          onAssignResponder={() => setIsResponderModalVisible(true)}
           onUpdateStatus={handleUpdateStatus}
         />
       )}
+
+      <ResponderPickerModal
+        visible={isResponderModalVisible}
+        onClose={() => setIsResponderModalVisible(false)}
+        onSelect={(uid, fullName) => {
+          handleAssignResponder(uid, fullName);
+          setIsResponderModalVisible(false);
+        }}
+      />
     </ScrollView>
   );
 }

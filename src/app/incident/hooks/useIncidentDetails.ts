@@ -87,10 +87,8 @@ export function useIncidentDetails(id?: string | string[]) {
     fetchIncident();
   }, [incidentId]);
 
-  const handleAssignResponder = async () => {
+  const handleAssignResponder = async (responderUid: string, responderName: string) => {
     if (!incidentId) return;
-
-    const responderName = 'فريق الاستجابة';
 
     const newTimelineItem: TimelineItem = {
       status: 'تم التعيين',
@@ -101,6 +99,7 @@ export function useIncidentDetails(id?: string | string[]) {
     try {
       await updateDoc(doc(db, 'reports', incidentId), {
         assignedResponder: responderName,
+        assignedResponderId: responderUid,
         timeline: arrayUnion(newTimelineItem),
       });
 
