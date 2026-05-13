@@ -29,6 +29,7 @@ export interface Report {
   latitude?: number;
   longitude?: number;
   imageUrl?: string;
+  audioUrl?: string;
   priority?: ReportPriority;
   status: ReportStatus;
   createdAt: string | Date;

@@ -33,6 +33,8 @@ export default function ReportScreen() {
     selectedCollege,
     mediaFile,
     mediaLoading,
+    voiceAttachment,
+    audioUploading,
     submitting,
     error,
     clearError,
@@ -42,7 +44,9 @@ export default function ReportScreen() {
     setSelectedCategory,
     setDescription,
     setSelectedCollege,
-    handlePickMedia,
+    handleMediaPress,
+    clearVoiceAttachment,
+    uploadRecordedAudio,
     handleSubmit: triggerMutation,
   } = useReportStore();
 
@@ -113,6 +117,7 @@ export default function ReportScreen() {
 
       recordingRef.current = rec;
       setAudioUri(null);
+      clearVoiceAttachment();
       setRecording(rec);
     } catch (err) {
       console.error(err);
@@ -130,8 +135,10 @@ export default function ReportScreen() {
       setAudioBusy(true);
       await currentRecording.stopAndUnloadAsync();
       const uri = currentRecording.getURI();
-
       setAudioUri(uri || null);
+      if (uri) {
+        await uploadRecordedAudio(uri);
+      }
     } catch (err) {
       console.error(err);
       Alert.alert("خطأ", "تعذر حفظ التسجيل الصوتي");
@@ -143,10 +150,11 @@ export default function ReportScreen() {
   };
 
   const playSound = async () => {
-    if (!audioUri || audioBusy) return;
+    const playUri = voiceAttachment?.url ?? audioUri;
+    if (!playUri || audioBusy) return;
 
     try {
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUri });
+      const { sound } = await Audio.Sound.createAsync({ uri: playUri });
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           sound.unloadAsync();
@@ -237,7 +245,7 @@ export default function ReportScreen() {
             <MediaButton
               mediaFile={mediaFile}
               loading={mediaLoading}
-              onPress={handlePickMedia}
+              onPress={handleMediaPress}
             />
           </View>
 
@@ -278,7 +286,7 @@ export default function ReportScreen() {
               </Text>
             </TouchableOpacity>
 
-            {audioUri && !recording && (
+            {audioUri && !recording && !audioUploading && (
               <TouchableOpacity
                 style={audioStyles.playButton}
                 onPress={playSound}
@@ -286,22 +294,31 @@ export default function ReportScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="play-circle" size={22} color={COLORS.success} />
-                <Text style={audioStyles.playText}>تشغيل التسجيل</Text>
+                <Text style={audioStyles.playText}>تشغيل المعاينة</Text>
               </TouchableOpacity>
             )}
 
             <Text style={audioStyles.statusText}>
               {recording
                 ? "جاري التسجيل..."
-                : audioUri
-                  ? "تم حفظ التسجيل محليًا ويمكنك تشغيله"
-                  : "يمكنك إضافة تسجيل صوتي قصير يوضح تفاصيل البلاغ"}
+                : audioUploading
+                  ? "جاري رفع التسجيل إلى Cloudinary..."
+                  : voiceAttachment?.url
+                    ? "تم رفع التسجيل وسيُرسل مع البلاغ."
+                    : audioUri
+                      ? "تعذر رفع التسجيل — تحقق من الإعدادات أو سجّل من جديد."
+                      : "يمكنك إضافة تسجيل صوتي قصير يوضح تفاصيل البلاغ (يُرفع إلى السحابة)."}
             </Text>
           </View>
 
           <SubmitButton
             submitting={submitting}
-            disabled={locationLoading || audioBusy || Boolean(recording)}
+            disabled={
+              locationLoading ||
+              audioBusy ||
+              audioUploading ||
+              Boolean(recording)
+            }
             submitScale={submitScale}
             onSubmit={triggerMutation}
             onCancel={() => router.back()}

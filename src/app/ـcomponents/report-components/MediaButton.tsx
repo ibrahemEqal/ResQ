@@ -39,7 +39,7 @@ export default function MediaButton({ mediaFile, loading, onPress }: Props) {
       )}
 
       <Text style={[styles.label, isSet && styles.labelActive]}>
-        {isSet ? activeLabel : "إرفاق صورة"}
+        {isSet ? activeLabel : "صورة (كاميرا أو معرض)"}
       </Text>
 
       {isSet && mediaFile && (
