@@ -6,6 +6,7 @@ export interface User {
   email: string;
   universityId: string;
   role: UserRole;
+  photoURL?: string;
 }
 
 export type EmergencyType =
