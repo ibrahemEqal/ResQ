@@ -1,5 +1,9 @@
 {
   "expo": {
+    "scheme": "resq",
+    "experiments": {
+      "typedRoutes": true
+    },
     "plugins": [
       "expo-router",
       "expo-sqlite",
@@ -8,11 +12,25 @@
         {
           "microphonePermission": "اسمح لتطبيق ResQ باستخدام الميكروفون لتسجيل بلاغ صوتي."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
-    "scheme": "resq",
-    "experiments": {
-      "typedRoutes": true
-    }
+    "android": {
+      "permissions": [
+        "NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "72253ec7-ccf7-4d1a-a0dd-aa6338cf7a98"
+      }
+    },
+    "owner": "farah-shahin"
   }
 }

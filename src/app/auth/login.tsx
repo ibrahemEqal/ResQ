@@ -1,12 +1,15 @@
-import CustomInput from '@/app/ـcomponents/CustomInput';
-import { auth, db } from '@/config/firebaseConfig';
-import { COLORS } from '@/constants/colors';
-import { Theme } from '@/constants/theme';
-import { router } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import React from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import CustomInput from "@/app/ـcomponents/CustomInput";
+import { auth, db } from "@/config/firebaseConfig";
+import { COLORS } from "@/constants/colors";
+import { Theme } from "@/constants/theme";
+import {
+  registerForPushNotificationsAsync,
+  saveToken,
+} from "@/services/notificationService";
+import { router } from "expo-router";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,48 +19,67 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { RFValue } from 'react-native-responsive-fontsize';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+} from "react-native";
+import { RFValue } from "react-native-responsive-fontsize";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   type FormData = {
-  email: string;
-  password: string;
-};
- 
-const { control,handleSubmit, formState: { errors },} =useForm<FormData>({
-  defaultValues: {
-    email: '',
-    password: '',
-  },
-});
+    email: string;
+    password: string;
+  };
 
-const onSubmit = async (data: FormData) => {
-  try {
-    await signInWithEmailAndPassword(
-      auth,
-      data.email,
-      data.password
-    );
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-    router.replace('/home');
+  const onSubmit = async (data: FormData) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password,
+      );
 
-  } catch (error) {
-    Alert.alert(
-      'Login Failed',
-      'Email or password is incorrect'
-    );
-  }
-};
-  
+      const user = userCredential.user;
+
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      const userData = userDoc.data();
+
+      console.log("USER ROLE:", userData?.role);
+
+      const token = await registerForPushNotificationsAsync();
+
+      console.log("TOKEN:", token);
+
+      if (token) {
+        await saveToken(user.uid, token);
+      }
+
+      if (userData?.role === "admin") {
+        router.replace("/dashboard");
+      } else {
+        router.replace("/home");
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Login Failed", "Email or password is incorrect");
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View style={styles.container}>
@@ -66,44 +88,47 @@ const onSubmit = async (data: FormData) => {
               <Text style={styles.subtitle}>Login to continue</Text>
 
               <Controller
-  control={control}
-  name="email"
-  rules={{
-    required: 'Email is required',
-  }}
-  render={({ field: { value, onChange } }) => (
-    <CustomInput
-      label="Email"
-      iconName="mail-outline"
-      placeholder="Enter your email"
-      keyboardType="email-address"
-      autoCapitalize="none"
-      value={value}
-      onChangeText={onChange}
-      error={errors.email?.message}
-    />
-  )}
-/>
+                control={control}
+                name="email"
+                rules={{
+                  required: "Email is required",
+                }}
+                render={({ field: { value, onChange } }) => (
+                  <CustomInput
+                    label="Email"
+                    iconName="mail-outline"
+                    placeholder="Enter your email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.email?.message}
+                  />
+                )}
+              />
               <Controller
-  control={control}
-  name="password"
-  rules={{
-    required: 'Password is required',
-  }}
-  render={({ field: { value, onChange } }) => (
-    <CustomInput
-      label="Password"
-      iconName="lock-closed-outline"
-      placeholder="Enter your password"
-      secureTextEntry
-      value={value}
-      onChangeText={onChange}
-      error={errors.password?.message}
-    />
-  )}
-/>
+                control={control}
+                name="password"
+                rules={{
+                  required: "Password is required",
+                }}
+                render={({ field: { value, onChange } }) => (
+                  <CustomInput
+                    label="Password"
+                    iconName="lock-closed-outline"
+                    placeholder="Enter your password"
+                    secureTextEntry
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.password?.message}
+                  />
+                )}
+              />
 
-              <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleSubmit(onSubmit)}
+              >
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
@@ -111,7 +136,7 @@ const onSubmit = async (data: FormData) => {
                 <Text style={styles.link}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push('./signup')}>
+              <TouchableOpacity onPress={() => router.push("./signup")}>
                 <Text style={styles.signupLink}>
                   Don’t have an account? Sign Up
                 </Text>
@@ -128,7 +153,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: Theme.spacing.lg,
   },
   card: {
@@ -140,42 +165,41 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: RFValue(24),
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.textPrimary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Theme.spacing.sm,
   },
   subtitle: {
     fontSize: RFValue(14),
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Theme.spacing.xl,
   },
   button: {
     backgroundColor: COLORS.primary,
     borderRadius: Theme.radius.md,
     paddingVertical: Theme.spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: Theme.spacing.sm,
   },
   buttonText: {
     color: COLORS.surface,
     fontSize: RFValue(16),
-    fontWeight: '700',
+    fontWeight: "700",
   },
   link: {
     marginTop: Theme.spacing.lg,
-    textAlign: 'center',
+    textAlign: "center",
     color: COLORS.secondary,
     fontSize: RFValue(13),
-    fontWeight: '600',
+    fontWeight: "600",
   },
   signupLink: {
     marginTop: Theme.spacing.md,
-    textAlign: 'center',
+    textAlign: "center",
     color: COLORS.primary,
     fontSize: RFValue(13),
-    fontWeight: '700',
+    fontWeight: "700",
   },
-
 });
