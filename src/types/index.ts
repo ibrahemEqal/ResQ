@@ -6,6 +6,7 @@ export interface User {
   email: string;
   universityId: string;
   role: UserRole;
+  photoURL?: string;
 }
 
 export type EmergencyType =
@@ -29,6 +30,7 @@ export interface Report {
   latitude?: number;
   longitude?: number;
   imageUrl?: string;
+  audioUrl?: string;
   priority?: ReportPriority;
   status: ReportStatus;
   createdAt: string | Date;
