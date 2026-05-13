@@ -33,15 +33,21 @@ const password = watch('password');
 const onSubmit = async (data: any) => {
   try {
 
-    await createUserWithEmailAndPassword(
+    const userCredential = await createUserWithEmailAndPassword(
       auth,
       data.email,
       data.password
     );
 
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      fullName: data.fullName,
+      email: data.email,
+      createdAt: new Date(),
+    });
+
     Alert.alert('Success', 'Account created successfully');
 
-   router.replace('/home');
+    router.replace('/home');
 
   } catch (error) {
     Alert.alert('Error', 'Something went wrong');
