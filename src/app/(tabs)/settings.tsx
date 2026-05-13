@@ -11,6 +11,9 @@ import {
   updateProfile,
   User,
 } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,8 +27,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../../config/firebaseConfig";
+import { auth, db } from "../../config/firebaseConfig";
 import { COLORS } from "../../constants/colors";
+import { uploadImageToCloudinary } from "@/services/cloudinaryService";
 
 export default function Settings() {
   const [user, setUser] = useState<User | null>(null);
@@ -37,28 +41,133 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const getFileExtension = (uri: string, fallback = "jpg") => {
+    const cleanUri = uri.split("?")[0].split("#")[0];
+    const match = cleanUri.match(/\.([a-zA-Z0-9]+)$/);
+    return (match?.[1] ?? fallback).toLowerCase();
+  };
+
+  const getImageMimeType = (extension: string, mimeType?: string | null) => {
+    if (mimeType) return mimeType;
+    if (extension === "jpg") return "image/jpeg";
+    return `image/${extension}`;
+  };
+
+  const uploadProfilePickedAsset = async (
+    asset: ImagePicker.ImagePickerAsset,
+  ) => {
+    const u = auth.currentUser;
+    if (!u) return;
+
+    setAvatarUploading(true);
+    try {
+      const extension = getFileExtension(asset.fileName || asset.uri, "jpg");
+      const fileName = asset.fileName || `profile_${Date.now()}.${extension}`;
+      const mimeType = getImageMimeType(extension, asset.mimeType);
+      const uploaded = await uploadImageToCloudinary({
+        uri: asset.uri,
+        fileName,
+        mimeType,
+      });
+      const url = uploaded.optimizedUrl;
+      await updateProfile(u, { photoURL: url });
+      await setDoc(doc(db, "users", u.uid), { photoURL: url }, { merge: true });
+      if (auth.currentUser) {
+        setUser(auth.currentUser);
+        setProfilePhotoUrl(url);
+      }
+      Alert.alert("تم", "تم تحديث صورة البروفايل.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "فشل رفع الصورة";
+      Alert.alert("خطأ", message, [{ text: "حسنًا", style: "cancel" }]);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const pickProfileFromLibrary = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("تنبيه", "يلزم السماح بالوصول إلى معرض الصور.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      await uploadProfilePickedAsset(result.assets[0]);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "فشل اختيار الصورة";
+      Alert.alert("خطأ", message);
+    }
+  };
+
+  const pickProfileFromCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("تنبيه", "يلزم السماح باستخدام الكاميرا.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      await uploadProfilePickedAsset(result.assets[0]);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "فشل التقاط الصورة";
+      Alert.alert("خطأ", message);
+    }
+  };
+
+  const handleChangeProfilePhoto = () => {
+    Alert.alert(
+      "صورة البروفايل",
+      "اختر مصدر الصورة",
+      [
+        { text: "إلغاء", style: "cancel" },
+        { text: "من المعرض", onPress: () => void pickProfileFromLibrary() },
+        { text: "التقاط صورة", onPress: () => void pickProfileFromCamera() },
+      ],
+    );
+  };
 
   const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         setFullNameInput(firebaseUser.displayName ?? "");
         setEmailInput(firebaseUser.email ?? "");
+        let photo: string | null = firebaseUser.photoURL ?? null;
+        try {
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (snap.exists()) {
+            const d = snap.data();
+            if (typeof d.photoURL === "string" && d.photoURL.length > 0) {
+              photo = d.photoURL;
+            }
+          }
+        } catch {
+        }
+        setProfilePhotoUrl(photo);
       } else {
         router.replace("./login");
       }
     });
     return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   const handleLogout = () => {
@@ -195,9 +304,28 @@ export default function Settings() {
             { backgroundColor: theme.surface, shadowColor: theme.cardShadow },
           ]}
         >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{fullName.charAt(0)}</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatarTouchable}
+            onPress={handleChangeProfilePhoto}
+            disabled={avatarUploading}
+            activeOpacity={0.85}
+            accessibilityLabel="تغيير صورة البروفايل"
+          >
+            <View style={styles.avatar}>
+              {avatarUploading ? (
+                <ActivityIndicator color={COLORS.primary} />
+              ) : profilePhotoUrl ? (
+                <Image
+                  source={{ uri: profilePhotoUrl }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                  accessibilityIgnoresInvertColors
+                />
+              ) : (
+                <Text style={styles.avatarText}>{fullName.charAt(0)}</Text>
+              )}
+            </View>
+          </TouchableOpacity>
 
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, { color: theme.textPrimary }]}>
@@ -211,8 +339,14 @@ export default function Settings() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.editBtn} activeOpacity={0.7}>
-            <Ionicons name="pencil" size={18} color={COLORS.primary} />
+          <TouchableOpacity
+            style={styles.editBtn}
+            activeOpacity={0.7}
+            onPress={handleChangeProfilePhoto}
+            disabled={avatarUploading}
+            accessibilityLabel="تغيير صورة البروفايل"
+          >
+            <Ionicons name="camera" size={18} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
@@ -568,6 +702,9 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
+  avatarTouchable: {
+    borderRadius: 28,
+  },
   avatar: {
     width: 56,
     height: 56,
@@ -575,6 +712,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   avatarText: { fontSize: 22, fontWeight: "900", color: COLORS.primary },
   profileInfo: { flex: 1 },

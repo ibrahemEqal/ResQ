@@ -13,6 +13,7 @@ import {
   Alert
 } from "react-native";
 import { COLORS } from "@/constants/colors";
+import { Image } from "expo-image";
 
 import { auth, db } from "@/config/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
@@ -24,27 +25,35 @@ export default function Home() {
 
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("جاري التحميل...");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
+          let photo: string | null = user.photoURL ?? null;
           const docRef = doc(db, "users", user.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserRole(data.role);
             setUserName(data.fullName || "مستخدم");
+            if (typeof data.photoURL === "string" && data.photoURL.length > 0) {
+              photo = data.photoURL;
+            }
           } else {
             setUserName("مستخدم");
           }
+          setProfilePhotoUrl(photo);
         } catch (error) {
           console.error("Error fetching user data:", error);
           setUserName("مستخدم");
+          setProfilePhotoUrl(user.photoURL ?? null);
         }
       } else {
         setUserName("زائر");
         setUserRole(null);
+        setProfilePhotoUrl(null);
       }
     });
 
@@ -100,7 +109,16 @@ export default function Home() {
               onPress={() => router.push("./settings")}
               activeOpacity={0.7}
             >
-              <Ionicons name="person" size={24} color={COLORS.primary} />
+              {profilePhotoUrl ? (
+                <Image
+                  source={{ uri: profilePhotoUrl }}
+                  style={styles.profileAvatarImage}
+                  contentFit="cover"
+                  accessibilityLabel="صورة البروفايل"
+                />
+              ) : (
+                <Ionicons name="person" size={24} color={COLORS.primary} />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -269,6 +287,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+    overflow: "hidden",
+  },
+  profileAvatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
 
   sosContainer: {
