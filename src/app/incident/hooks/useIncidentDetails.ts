@@ -28,6 +28,8 @@ type IncidentReport = {
   priority: string;
   createdAt: string;
   assignedResponder?: string;
+  imageUrl?: string;
+  audioUrl?: string;
   timeline?: TimelineItem[];
 };
 

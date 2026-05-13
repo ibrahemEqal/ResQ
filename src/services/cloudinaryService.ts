@@ -12,7 +12,7 @@ export type CloudinarySettings = {
   uploadPreset: string;
 };
 
-type UploadImageParams = {
+type UploadMediaParams = {
   uri: string;
   fileName: string;
   mimeType: string;
@@ -69,7 +69,7 @@ export const uploadImageToCloudinary = async ({
   uri,
   fileName,
   mimeType,
-}: UploadImageParams) => {
+}: UploadMediaParams) => {
   const settings = normalizeCloudinarySettings(await getCloudinarySettings());
 
   if (!isCloudinaryConfigured(settings)) {
@@ -139,4 +139,53 @@ export const buildCloudinaryImageUrl = (
     .quality("auto")
     .resize(auto().gravity(autoGravity()).width(width).height(height))
     .toURL();
+};
+
+export const uploadAudioToCloudinary = async ({
+  uri,
+  fileName,
+  mimeType,
+}: UploadMediaParams) => {
+  const settings = normalizeCloudinarySettings(await getCloudinarySettings());
+
+  if (!isCloudinaryConfigured(settings)) {
+    throw new Error("يرجى إعداد Cloudinary من صفحة الإعدادات أولًا");
+  }
+
+  const formData = new FormData();
+
+  if (uri.startsWith("data:")) {
+    formData.append("file", uri);
+  } else if (uri.startsWith("blob:")) {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    formData.append("file", blob, fileName);
+  } else {
+    (formData as any).append("file", {
+      uri,
+      name: fileName,
+      type: mimeType,
+    });
+  }
+
+  formData.append("upload_preset", settings.uploadPreset);
+
+  const endpoint = `https://api.cloudinary.com/v1_1/${encodeURIComponent(settings.cloudName)}/video/upload`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    body: formData,
+  });
+  const data = (await response.json().catch(() => null)) as CloudinaryUploadResponse | null;
+
+  if (!response.ok || !data?.secure_url) {
+    throw new Error(
+      data?.error?.message ||
+        `فشل رفع التسجيل الصوتي إلى Cloudinary (${response.status}). تأكد أن الـ upload preset يسمح بموارد الفيديو/الصوت.`,
+    );
+  }
+
+  return {
+    secureUrl: data.secure_url,
+    publicId: data.public_id ?? "",
+  };
 };

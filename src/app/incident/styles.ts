@@ -41,6 +41,20 @@ export const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'right',
   },
+  reportImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: Theme.radius.sm,
+    backgroundColor: Theme.colors.background,
+  },
+  reportImageLink: {
+    marginTop: Theme.spacing.sm,
+    fontSize: 13,
+    color: Theme.colors.primary,
+    fontWeight: '600',
+    textAlign: 'right',
+    textDecorationLine: 'underline',
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',

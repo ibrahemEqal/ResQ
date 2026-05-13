@@ -8,6 +8,13 @@
         {
           "microphonePermission": "اسمح لتطبيق ResQ باستخدام الميكروفون لتسجيل بلاغ صوتي."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "يسمح لتطبيق ResQ بالوصول إلى صورك لإرفاقها مع البلاغ.",
+          "cameraPermission": "يسمح لتطبيق ResQ باستخدام الكاميرا لتصوير البلاغ."
+        }
       ]
     ],
     "scheme": "resq",
