@@ -129,7 +129,6 @@ export default function SendNotificationModal({ visible, onClose }: Props) {
               )}
             </TouchableOpacity>
 
-            {/* إلغاء */}
             <TouchableOpacity onPress={onClose}>
               <Text style={styles.cancel}>إلغاء</Text>
             </TouchableOpacity>

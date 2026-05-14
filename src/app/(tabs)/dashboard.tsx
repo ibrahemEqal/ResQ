@@ -166,6 +166,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  alertBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 240, 255, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0, 240, 255, 0.3)",
+  },
+  alertText: { color: "#FFF", fontSize: 12, fontWeight: "bold", marginLeft: 6 },
 
   pageTitle: {
     fontSize: 22,
@@ -176,21 +187,6 @@ const styles = StyleSheet.create({
   subTitle: {
     color: "#00F0FF",
     marginBottom: 10,
-  },
-
-  alertBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FF2A2A",
-    padding: 10,
-    borderRadius: 10,
-    gap: 6,
-    width: 120,
-  },
-
-  alertText: {
-    color: "#fff",
-    fontWeight: "700",
   },
 
   statusBanner: {
