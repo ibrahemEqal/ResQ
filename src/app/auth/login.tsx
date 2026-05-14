@@ -51,7 +51,6 @@ export default function LoginScreen() {
       const user = userCredential.user;
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
-
       const userData = userDoc.data();
 
       console.log("USER ROLE:", userData?.role);
@@ -61,10 +60,10 @@ export default function LoginScreen() {
       console.log("TOKEN:", token);
 
       if (token) {
-        await saveToken(user.uid, token);
+        await saveToken(user.uid, token, userData?.role?.trim() || "student");
       }
 
-      if (userData?.role === "admin") {
+      if (userData?.role?.trim() === "admin") {
         router.replace("/dashboard");
       } else {
         router.replace("/home");
