@@ -49,7 +49,8 @@ const onSubmit = async (data: any) => {
 
     Alert.alert('Success', 'Account created successfully');
 
-    router.replace('/home');
+    router.push('/auth/login');
+    
 
   } catch (error) {
     Alert.alert('Error', 'Something went wrong');
