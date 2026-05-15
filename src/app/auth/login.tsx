@@ -3,7 +3,7 @@ import { auth, db } from '@/config/firebaseConfig';
 import { COLORS } from '@/constants/colors';
 import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -33,6 +33,30 @@ const { control,handleSubmit, formState: { errors },} =useForm<FormData>({
     password: '',
   },
 });
+
+const handleForgetPassword = async () => {
+  const email = control._formValues.email;
+
+  if (!email) {
+    Alert.alert('Error', 'Please enter your email first');
+    return;
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+
+    Alert.alert(
+      'Success',
+      'Password reset email sent'
+    );
+
+  } catch (error) {
+    Alert.alert(
+      'Error',
+      'Failed to send reset email'
+    );
+  }
+};
 
 const onSubmit = async (data: FormData) => {
   try {
@@ -107,9 +131,9 @@ const onSubmit = async (data: FormData) => {
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity>
-                <Text style={styles.link}>Forgot Password?</Text>
-              </TouchableOpacity>
+              <TouchableOpacity onPress={handleForgetPassword}>
+               <Text style={styles.link}>Forgot Password?</Text>
+                </TouchableOpacity>
 
               <TouchableOpacity onPress={() => router.push('./signup')}>
                 <Text style={styles.signupLink}>
