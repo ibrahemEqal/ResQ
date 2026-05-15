@@ -40,14 +40,17 @@ const onSubmit = async (data: any) => {
     );
 
     await setDoc(doc(db, 'users', userCredential.user.uid), {
-      fullName: data.fullName,
-      email: data.email,
-      createdAt: new Date(),
-    });
+  fullName:data.fullName,
+  email: data.email,
+  role: 'student',
+  createdAt: new Date(),
+  uid: userCredential.user.uid,
+});
 
     Alert.alert('Success', 'Account created successfully');
 
-    router.replace('/home');
+    router.push('/auth/login');
+    
 
   } catch (error) {
     Alert.alert('Error', 'Something went wrong');
@@ -66,6 +69,23 @@ const onSubmit = async (data: any) => {
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Sign up to get started</Text>
 
+            <Controller
+              control={control}
+              name="fullName"
+              rules={{
+                required: 'Full name is required',
+              }}
+              render={({ field: { value, onChange } }) => (
+                <CustomInput
+                  label="Full Name"
+                  iconName="person-outline"
+                  placeholder="Enter your full name"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.fullName?.message}
+                />
+              )}
+            />
             <Controller
               control={control}
               name="email"
@@ -134,6 +154,7 @@ const onSubmit = async (data: any) => {
             <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
               <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
+            
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

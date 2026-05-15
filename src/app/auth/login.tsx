@@ -12,6 +12,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
+  GestureResponderEvent,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -74,6 +75,10 @@ export default function LoginScreen() {
     }
   };
 
+  function handleForgetPassword(event: GestureResponderEvent): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -131,7 +136,7 @@ export default function LoginScreen() {
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity>
+              <TouchableOpacity onPress={handleForgetPassword}>
                 <Text style={styles.link}>Forgot Password?</Text>
               </TouchableOpacity>
 

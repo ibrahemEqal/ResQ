@@ -63,7 +63,7 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.replace('./login');
+     router.replace('/auth/login');
     } catch (error) {
       Alert.alert("خطأ", "حدثت مشكلة أثناء تسجيل الخروج");
       console.error(error);
