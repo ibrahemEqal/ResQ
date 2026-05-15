@@ -4,7 +4,6 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { collection, doc, getDocs, setDoc } from "firebase/firestore";
-import { Platform } from "react-native";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -35,24 +34,18 @@ export async function registerForPushNotificationsAsync() {
     return;
   }
 
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-    });
-  }
-
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
 
   let finalStatus = existingStatus;
 
   if (existingStatus !== "granted") {
     const { status } = await Notifications.requestPermissionsAsync();
+
     finalStatus = status;
   }
 
   if (finalStatus !== "granted") {
-    alert("Permission not granted for push notifications!");
+    alert("Permission denied");
     return;
   }
 
@@ -62,7 +55,7 @@ export async function registerForPushNotificationsAsync() {
     })
   ).data;
 
-  console.log("EXPO PUSH TOKEN:", token);
+  console.log("EXPO TOKEN:", token);
 
   return token;
 }
@@ -124,34 +117,32 @@ export async function sendPushNotification(
   body: string,
   type: string,
   location: string,
-  platform: "android" | "ios",
 ) {
-  try {
-    const messages = tokens.map((token) => ({
-      to: token,
-      sound: "default",
-      title,
-      body,
-      data: {
-        screen: "alert-details",
-        type,
-        location,
-      },
-    }));
+  const messages = tokens.map((token) => ({
+    to: token,
+    sound: "default",
+    title,
+    body,
 
-    const response = await fetch(
-      `https://exp.host/--/api/v2/push/send?platform=${platform}`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(messages),
+    data: {
+      screen: "alert-details",
+      type,
+      location,
+    },
+  }));
+
+  try {
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(messages),
+    });
 
     const data = await response.json();
+
     console.log("Push result:", data);
   } catch (error) {
     console.log("Push error:", error);

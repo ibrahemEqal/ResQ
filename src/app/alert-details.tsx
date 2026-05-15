@@ -141,7 +141,7 @@ export default function AlertDetails() {
               <Ionicons
                 name="checkmark-circle"
                 size={18}
-                color={COLORS.success}
+                color={COLORS.primary}
               />
               <Text style={styles.actionText}>{item}</Text>
             </View>
@@ -154,7 +154,7 @@ export default function AlertDetails() {
             <Ionicons
               name="checkmark-done-circle"
               size={24}
-              color={COLORS.success}
+              color={COLORS.primary}
             />
             <Text style={styles.footerText}>تم الاطلاع على التنبيه</Text>
           </View>
