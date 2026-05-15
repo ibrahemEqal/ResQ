@@ -52,8 +52,15 @@ const onSubmit = async (data: any) => {
     router.push('/auth/login');
     
 
-  } catch (error) {
+  } catch (error: any) {
+
+  if (error.code === 'auth/email-already-in-use') {
+    Alert.alert('Error', 'This email is already registered');
+  } else {
     Alert.alert('Error', 'Something went wrong');
+  }
+
+}
   }
 };
  
