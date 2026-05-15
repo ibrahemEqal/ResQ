@@ -62,10 +62,20 @@ export default function SendNotificationModal({ visible, onClose }: Props) {
 
       const body = "اضغط لمعرفة تفاصيل الحالة";
 
-      await sendPushNotification(tokens, title, body, type, location);
+      // 📲 إرسال للأندرويد
+      await sendPushNotification(
+        tokens,
+        title,
+        body,
+        type,
+        location,
+        "android",
+      );
+
+      // 📲 إرسال للـ iOS
+      await sendPushNotification(tokens, title, body, type, location, "ios");
 
       alert("تم إرسال التنبيه بنجاح");
-
       onClose();
     } catch (error) {
       console.log(error);
