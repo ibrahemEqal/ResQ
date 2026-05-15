@@ -1,15 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   Easing,
   Pressable,
   StyleSheet,
   Text,
   Vibration,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -76,13 +75,6 @@ export default function AlertDetails() {
   const handleConfirm = () => {
     Vibration.vibrate([100, 200, 100]);
     setRead(true);
-
-    Alert.alert("تم التأكيد", "تم تسجيل الاطلاع على التنبيه", [
-      {
-        text: "إغلاق",
-        onPress: () => router.back(),
-      },
-    ]);
   };
 
   return (

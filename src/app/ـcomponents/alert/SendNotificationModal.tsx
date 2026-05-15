@@ -19,6 +19,8 @@ type Props = {
   onClose: () => void;
 };
 
+const PRIMARY = "#FF3B30";
+
 const COLLEGES = [
   "كلية الهندسة وتكنولوجيا المعلومات",
   "كلية الطب وعلوم الصحة",
@@ -62,20 +64,10 @@ export default function SendNotificationModal({ visible, onClose }: Props) {
 
       const body = "اضغط لمعرفة تفاصيل الحالة";
 
-      // 📲 إرسال للأندرويد
-      await sendPushNotification(
-        tokens,
-        title,
-        body,
-        type,
-        location,
-        "android",
-      );
-
-      // 📲 إرسال للـ iOS
-      await sendPushNotification(tokens, title, body, type, location, "ios");
+      await sendPushNotification(tokens, title, body, type, location);
 
       alert("تم إرسال التنبيه بنجاح");
+
       onClose();
     } catch (error) {
       console.log(error);
@@ -99,14 +91,28 @@ export default function SendNotificationModal({ visible, onClose }: Props) {
                 style={[styles.option, type === "fire" && styles.active]}
                 onPress={() => setType("fire")}
               >
-                <Text style={styles.optionText}>🔥 حريق</Text>
+                <Text
+                  style={[
+                    styles.optionText,
+                    type === "fire" && styles.activeText,
+                  ]}
+                >
+                  حريق
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.option, type === "electricity" && styles.active]}
                 onPress={() => setType("electricity")}
               >
-                <Text style={styles.optionText}>⚡ كهرباء</Text>
+                <Text
+                  style={[
+                    styles.optionText,
+                    type === "electricity" && styles.activeText,
+                  ]}
+                >
+                  كهرباء
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -122,7 +128,14 @@ export default function SendNotificationModal({ visible, onClose }: Props) {
                   ]}
                   onPress={() => setLocation(college)}
                 >
-                  <Text style={styles.collegeText}>{college}</Text>
+                  <Text
+                    style={[
+                      styles.collegeText,
+                      location === college && styles.activeCollegeText,
+                    ]}
+                  >
+                    {college}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -154,102 +167,118 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
-    padding: 20,
+    padding: 16,
   },
 
   container: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 20,
-    maxHeight: "85%",
+    padding: 16,
   },
 
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 14,
+    color: PRIMARY,
   },
 
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    marginBottom: 10,
-    marginTop: 10,
+    marginBottom: 8,
+    marginTop: 8,
+    color: "#222",
   },
 
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 10,
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 14,
   },
 
   option: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 12,
-    paddingVertical: 18,
+    borderRadius: 10,
+    paddingVertical: 14,
     alignItems: "center",
+    backgroundColor: "#fff",
   },
 
   active: {
-    backgroundColor: "#dbeafe",
-    borderColor: "#2563eb",
+    backgroundColor: "#ffe5e3",
+    borderColor: PRIMARY,
   },
 
   optionText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
+    color: "#333",
+  },
+
+  activeText: {
+    color: PRIMARY,
   },
 
   collegesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 10,
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 14,
   },
 
   collegeCard: {
     width: "48%",
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     alignItems: "center",
+    backgroundColor: "#fff",
   },
 
   activeCollege: {
-    backgroundColor: "#dbeafe",
-    borderColor: "#2563eb",
+    backgroundColor: "#ffe5e3",
+    borderColor: PRIMARY,
   },
 
   collegeText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
     textAlign: "center",
+    color: "#333",
+  },
+
+  activeCollegeText: {
+    color: PRIMARY,
+    fontWeight: "700",
   },
 
   button: {
-    backgroundColor: "#2563eb",
-    padding: 14,
-    borderRadius: 12,
+    backgroundColor: PRIMARY,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 6,
   },
 
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
   },
 
   cancel: {
-    marginTop: 15,
+    marginTop: 12,
     textAlign: "center",
-    color: "red",
+    color: PRIMARY,
     fontWeight: "600",
+    fontSize: 14,
   },
 });

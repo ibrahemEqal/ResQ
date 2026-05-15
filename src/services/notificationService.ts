@@ -3,7 +3,13 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  setDoc,
+} from "firebase/firestore";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -20,7 +26,7 @@ Notifications.addNotificationResponseReceivedListener((response) => {
   };
 
   router.push({
-    pathname: "/alert-details",
+    pathname: "./app/alert-details.tsx",
     params: {
       type: data.type,
       location: data.location,
@@ -58,6 +64,10 @@ export async function registerForPushNotificationsAsync() {
   console.log("EXPO TOKEN:", token);
 
   return token;
+}
+
+export async function deleteToken(userId: string) {
+  await deleteDoc(doc(db, "userTokens", userId));
 }
 
 export async function saveToken(userId: string, token: string, role: string) {
@@ -144,7 +154,5 @@ export async function sendPushNotification(
     const data = await response.json();
 
     console.log("Push result:", data);
-  } catch (error) {
-    console.log("Push error:", error);
-  }
+  } catch (error) {}
 }
