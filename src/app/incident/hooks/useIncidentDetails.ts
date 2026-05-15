@@ -28,6 +28,7 @@ type IncidentReport = {
   priority: string;
   createdAt: string;
   assignedResponder?: string;
+  assignedResponderId?: string;
   imageUrl?: string;
   audioUrl?: string;
   timeline?: TimelineItem[];
@@ -64,7 +65,7 @@ export function useIncidentDetails(id?: string | string[]) {
 
         setReport(data);
         setCurrentStatus(data.status || '');
-        setAssignedResponder(data.assignedResponder || 'غير معين');
+        setAssignedResponder(data.assignedResponder && data.assignedResponder !== 'فريق الاستجابة' ? data.assignedResponder : 'غير معين');
 
         if (data.timeline && data.timeline.length > 0) {
           setTimeline(data.timeline);
@@ -102,6 +103,7 @@ export function useIncidentDetails(id?: string | string[]) {
         assignedResponderId: responderUid,
         timeline: arrayUnion(newTimelineItem),
       });
+      await updateDoc(doc(db, 'users', responderUid), { isAvailable: false });
 
       setAssignedResponder(responderName);
       setTimeline((prev) => [...prev, newTimelineItem]);
@@ -126,6 +128,10 @@ export function useIncidentDetails(id?: string | string[]) {
         status: newStatus,
         timeline: arrayUnion(newTimelineItem),
       });
+
+      if (newStatus === 'Resolved' && report?.assignedResponderId) {
+        await updateDoc(doc(db, 'users', report.assignedResponderId), { isAvailable: true });
+      }
 
       setCurrentStatus(newStatus);
       setTimeline((prev) => [...prev, newTimelineItem]);

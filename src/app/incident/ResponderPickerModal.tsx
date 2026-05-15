@@ -16,6 +16,7 @@ type Responder = {
   uid: string;
   fullName: string;
   email: string;
+  isAvailable: boolean;
 };
 
 type Props = {
@@ -41,6 +42,7 @@ export function ResponderPickerModal({ visible, onClose, onSelect }: Props) {
             uid: doc.id,
             fullName: doc.data().fullName ?? '',
             email: doc.data().email ?? '',
+            isAvailable: doc.data().isAvailable ?? true,
           }))
         );
       } catch (error) {
@@ -73,10 +75,16 @@ export function ResponderPickerModal({ visible, onClose, onSelect }: Props) {
               keyExtractor={(item) => item.uid}
               renderItem={({ item }) => (
                 <Pressable
-                  style={modalStyles.row}
-                  onPress={() => onSelect(item.uid, item.fullName)}
+                  style={[modalStyles.row, !item.isAvailable && { opacity: 0.4 }]}
+                  onPress={() => item.isAvailable && onSelect(item.uid, item.fullName)}
+                  pointerEvents={item.isAvailable ? 'auto' : 'none'}
                 >
-                  <Text style={modalStyles.name}>{item.fullName}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={modalStyles.name}>{item.fullName}</Text>
+                    {!item.isAvailable && (
+                      <Text style={{ color: 'red', fontSize: 12, fontWeight: '700' }}>مشغول</Text>
+                    )}
+                  </View>
                   <Text style={modalStyles.email}>{item.email}</Text>
                 </Pressable>
               )}

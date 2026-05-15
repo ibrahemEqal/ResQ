@@ -1,6 +1,6 @@
 import { COLORS } from "@/constants/colors";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { ReportStatus } from "@/types";
 
 type Props = {
@@ -33,7 +33,11 @@ export default function Filters({ filter, setFilter }: Props) {
     };
 
     return (
-        <View style={styles.filters}>
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filters}
+        >
             {tabs.map((tab) => {
                 const isActive = filter === tab;
                 return (
@@ -49,28 +53,22 @@ export default function Filters({ filter, setFilter }: Props) {
                     </TouchableOpacity>
                 );
             })}
-        </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     filters: {
-        flexDirection: "row-reverse",
-        margin: 16,
+        flexDirection: "row",
+        paddingHorizontal: 16,
+        paddingVertical: 8,
     },
     btn: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        marginLeft: 8,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+        marginRight: 8,
         backgroundColor: COLORS.background,
         borderRadius: 10,
-        shadowColor: "transparent",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0,
-        shadowRadius: 0,
-        elevation: 0,
     },
     activeBtn: {
         backgroundColor: COLORS.primary,
