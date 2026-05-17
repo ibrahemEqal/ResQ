@@ -1,5 +1,11 @@
 {
   "expo": {
+    "name": "ResQ",
+    "slug": "resq",
+    "scheme": "resq",
+    "experiments": {
+      "typedRoutes": true
+    },
     "plugins": [
       "expo-router",
       "expo-sqlite",
@@ -15,11 +21,33 @@
           "photosPermission": "يسمح لتطبيق ResQ بالوصول إلى صورك لإرفاقها مع البلاغ.",
           "cameraPermission": "يسمح لتطبيق ResQ باستخدام الكاميرا لتصوير البلاغ."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff"
+        }
       ]
     ],
-    "scheme": "resq",
-    "experiments": {
-      "typedRoutes": true
+    "android": {
+      "package": "com.resq.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.resq.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "72253ec7-ccf7-4d1a-a0dd-aa6338cf7a98"
+      }
     }
   }
 }

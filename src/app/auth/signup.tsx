@@ -1,75 +1,84 @@
-import CustomInput from '@/app/ـcomponents/CustomInput';
-import { auth, db } from '@/config/firebaseConfig';
-import { COLORS } from '@/constants/colors';
-import { Theme } from '@/constants/theme';
-import { router } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import React from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { RFValue } from 'react-native-responsive-fontsize';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+import CustomInput from "@/app/ـcomponents/CustomInput";
+import { auth, db } from "@/config/firebaseConfig";
+import { COLORS } from "@/constants/colors";
+import { Theme } from "@/constants/theme";
+import {
+  registerForPushNotificationsAsync,
+  saveToken,
+} from "@/services/notificationService";
+import { router } from "expo-router";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { Controller, useForm } from "react-hook-form";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { RFValue } from "react-native-responsive-fontsize";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignupScreen() {
- 
-const {
-  control,
-  handleSubmit,
-  watch,
-  formState: { errors },
-} = useForm({
-  defaultValues: {
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  },
-});
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-const password = watch('password');
+  const password = watch("password");
 
-const onSubmit = async (data: any) => {
-  try {
+  const onSubmit = async (data: any) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password,
+      );
 
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      data.email,
-      data.password
-    );
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        fullName: data.fullName,
+        email: data.email,
+        role: "student",
+        createdAt: new Date(),
+        uid: userCredential.user.uid,
+      });
 
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-  fullName:data.fullName,
-  email: data.email,
-  role: 'student',
-  createdAt: new Date(),
-  uid: userCredential.user.uid,
-});
+      const token = await registerForPushNotificationsAsync();
 
-    Alert.alert('Success', 'Account created successfully');
+      if (token) {
+        await saveToken(userCredential.user.uid, token, "student");
+      }
 
-    router.push('/auth/login');
-    
+      Alert.alert("Success", "Account created successfully");
 
-  } catch (error: any) {
-
-  if (error.code === 'auth/email-already-in-use') {
-    Alert.alert('Error', 'This email is already registered');
-  } else {
-    Alert.alert('Error', 'Something went wrong');
-  }
-
-}
-  
-};
- 
+      router.push("/auth/login");
+    } catch (error: any) {
+      if (error.code === "auth/email-already-in-use") {
+        Alert.alert("Error", "This email is already registered");
+      } else {
+        Alert.alert("Error", "Something went wrong");
+      }
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.card}>
@@ -80,7 +89,7 @@ const onSubmit = async (data: any) => {
               control={control}
               name="fullName"
               rules={{
-                required: 'Full name is required',
+                required: "Full name is required",
               }}
               render={({ field: { value, onChange } }) => (
                 <CustomInput
@@ -97,10 +106,10 @@ const onSubmit = async (data: any) => {
               control={control}
               name="email"
               rules={{
-                required: 'Email is required',
+                required: "Email is required",
                 pattern: {
                   value: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-                  message: 'Please enter a valid email',
+                  message: "Please enter a valid email",
                 },
               }}
               render={({ field: { value, onChange } }) => (
@@ -120,10 +129,10 @@ const onSubmit = async (data: any) => {
               control={control}
               name="password"
               rules={{
-                required: 'Password is required',
+                required: "Password is required",
                 minLength: {
                   value: 6,
-                  message: 'Password must be at least 6 characters',
+                  message: "Password must be at least 6 characters",
                 },
               }}
               render={({ field: { value, onChange } }) => (
@@ -142,8 +151,9 @@ const onSubmit = async (data: any) => {
               control={control}
               name="confirmPassword"
               rules={{
-                required: 'Please confirm your password',
-                validate: (value) => value === password || 'Passwords do not match',
+                required: "Please confirm your password",
+                validate: (value) =>
+                  value === password || "Passwords do not match",
               }}
               render={({ field: { value, onChange } }) => (
                 <CustomInput
@@ -158,10 +168,12 @@ const onSubmit = async (data: any) => {
               )}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleSubmit(onSubmit)}
+            >
               <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
-            
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -173,7 +185,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: COLORS.background,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: Theme.spacing.lg,
   },
   card: {
@@ -184,29 +196,28 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   title: {
-    fontSize: RFValue(24), 
-    fontWeight: '700',
+    fontSize: RFValue(24),
+    fontWeight: "700",
     color: COLORS.textPrimary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Theme.spacing.sm,
   },
   subtitle: {
     fontSize: RFValue(14),
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Theme.spacing.xl,
   },
   button: {
     backgroundColor: COLORS.primary,
     borderRadius: Theme.radius.md,
     paddingVertical: Theme.spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: Theme.spacing.sm,
   },
   buttonText: {
     color: COLORS.surface,
-    fontSize: RFValue(16), 
-    fontWeight: '700',
+    fontSize: RFValue(16),
+    fontWeight: "700",
   },
 });
-              
