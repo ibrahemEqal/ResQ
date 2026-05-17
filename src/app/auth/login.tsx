@@ -7,19 +7,21 @@ import {
   saveToken,
 } from "@/services/notificationService";
 import { router } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
-  GestureResponderEvent,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -40,6 +42,22 @@ export default function LoginScreen() {
       password: "",
     },
   });
+  const handleForgetPassword = async () => {
+    const email = control._formValues.email;
+
+    if (!email) {
+      Alert.alert("Error", "Please enter your email first");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+
+      Alert.alert("Success", "Password reset email sent");
+    } catch (error) {
+      Alert.alert("Error", "Failed to send reset email");
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -74,10 +92,6 @@ export default function LoginScreen() {
       Alert.alert("Login Failed", "Email or password is incorrect");
     }
   };
-
-  function handleForgetPassword(event: GestureResponderEvent): void {
-    throw new Error("Function not implemented.");
-  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>

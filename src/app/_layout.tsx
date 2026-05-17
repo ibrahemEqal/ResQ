@@ -10,7 +10,9 @@ import { COLORS } from "../constants/colors";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { LogBox } from "react-native";
 
+LogBox.ignoreLogs(["expo-notifications"]);
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
@@ -46,6 +48,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (initializing || !isMounted.current) return;
+
     const inAuthGroup = segments[0] === "auth";
 
     if (user && inAuthGroup) {
@@ -80,6 +83,10 @@ export default function RootLayout() {
             <Stack.Screen
               name="report"
               options={{ headerShown: true, title: "إبلاغ طارئ" }}
+            />
+            <Stack.Screen
+              name="alert-details"
+              options={{ headerShown: false }}
             />
           </Stack>
         </GestureHandlerRootView>

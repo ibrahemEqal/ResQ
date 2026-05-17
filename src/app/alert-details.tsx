@@ -1,70 +1,44 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef } from "react";
 import {
   Animated,
   Easing,
+  I18nManager,
   Pressable,
   StyleSheet,
   Text,
-  Vibration,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export const COLORS = {
-  primary: "#dc2626",
-  primaryLight: "#fecaca",
-  secondary: "#991b1b",
-
-  background: "#ffffff",
-  surface: "#f3f4f6",
-
-  textPrimary: "#111111",
-  textSecondary: "#555555",
-
-  success: "#22c55e",
-  warning: "#ff4d4d",
-  border: "#e5e5e5",
-};
+I18nManager.forceRTL(true);
+I18nManager.allowRTL(true);
 
 export default function AlertDetails() {
   const { type, location } = useLocalSearchParams();
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const [read, setRead] = useState(false);
 
   const typeValue = Array.isArray(type) ? type[0] : type;
   const locationValue = Array.isArray(location) ? location[0] : location;
 
   const isFire = typeValue === "حريق";
 
-  const emergencyActions = isFire
-    ? [
-        "ابتعد فورًا عن مصدر الحريق",
-        "اتصل بالدفاع المدني",
-        "لا تستخدم المصعد",
-        "قم بتنبيه الموجودين فورًا",
-      ]
-    : [
-        "ابتعد عن مصدر الكهرباء",
-        "لا تلمس الأسلاك المكشوفة",
-        "افصل الكهرباء إن أمكن",
-        "اتصل بالطوارئ فورًا",
-      ];
+  const iconName = isFire ? "flame" : "warning";
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 600,
+          toValue: 1.12,
+          duration: 700,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 600,
+          duration: 700,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -72,85 +46,64 @@ export default function AlertDetails() {
     ).start();
   }, []);
 
-  const handleConfirm = () => {
-    Vibration.vibrate([100, 200, 100]);
-    setRead(true);
+  const handleSeen = () => {
+    router.back();
   };
 
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safe}>
-        <Animated.Text
-          style={[
-            styles.title,
-            {
-              transform: [{ scale: pulseAnim }],
-            },
-          ]}
-        >
-          Emergency Alert
-        </Animated.Text>
-
-        <Text style={styles.subtitle}>اضغط على الزر لتأكيد الاطلاع</Text>
+        <Text style={styles.title}>Emergency Alert</Text>
+        <Text style={styles.subtitle}>{typeValue || "غير محدد"}</Text>
 
         <View style={styles.center}>
-          <Pressable
-            onPress={handleConfirm}
-            style={({ pressed }) => [
-              pressed && { transform: [{ scale: 0.95 }] },
-            ]}
+          <Animated.View
+            style={[styles.circle, { transform: [{ scale: pulseAnim }] }]}
           >
-            <View style={styles.sosButton}>
-              <Ionicons
-                name={read ? "checkmark-done" : "shield-checkmark"}
-                size={50}
-                color="#fff"
-              />
-            </View>
-          </Pressable>
+            <Ionicons name={iconName} size={80} color="#fff" />
+          </Animated.View>
         </View>
 
         <View style={styles.card}>
           <View style={styles.row}>
-            <Ionicons name="alert-circle" size={20} color={COLORS.primary} />
-            <Text style={styles.text}>{typeValue || "غير محدد"}</Text>
+            <Ionicons name="location" size={18} color="#dc2626" />
+            <Text style={styles.text}>{locationValue || "غير محدد"}</Text>
           </View>
 
-          <View style={styles.divider} />
-
           <View style={styles.row}>
-            <Ionicons name="location" size={20} color={COLORS.success} />
-            <Text style={styles.text}>{locationValue || "غير محدد"}</Text>
+            <Ionicons name="radio-button-on" size={18} color="#dc2626" />
+            <Text style={styles.text}>{typeValue || "غير محدد"}</Text>
           </View>
         </View>
 
-        {/* ACTIONS */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>إجراءات السلامة</Text>
 
-          {emergencyActions.map((item, i) => (
+          {(isFire
+            ? [
+                "ابتعد فورًا عن مصدر الحريق",
+                "اتصل بالدفاع المدني",
+                "لا تستخدم المصعد",
+                "قم بتنبيه الموجودين فورًا",
+              ]
+            : [
+                "ابتعد عن مصدر الكهرباء",
+                "لا تلمس الأسلاك المكشوفة",
+                "افصل الكهرباء إن أمكن",
+                "اتصل بالطوارئ فورًا",
+              ]
+          ).map((item, i) => (
             <View key={i} style={styles.actionRow}>
-              <Ionicons
-                name="checkmark-circle"
-                size={18}
-                color={COLORS.primary}
-              />
+              <Ionicons name="checkmark-circle" size={16} color="#dc2626" />
               <Text style={styles.actionText}>{item}</Text>
             </View>
           ))}
         </View>
 
-        {/* FOOTER */}
-        {read && (
-          <View style={styles.footer}>
-            <Ionicons
-              name="checkmark-done-circle"
-              size={24}
-              color={COLORS.primary}
-            />
-            <Text style={styles.footerText}>تم الاطلاع على التنبيه</Text>
-          </View>
-        )}
+        <Pressable style={styles.button} onPress={handleSeen}>
+          <Text style={styles.buttonText}>تم الاطلاع عليها</Text>
+          <Ionicons name="checkmark-done" size={20} color="#fff" />
+        </Pressable>
       </SafeAreaView>
     </View>
   );
@@ -159,112 +112,100 @@ export default function AlertDetails() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
   },
 
   safe: {
     flex: 1,
     padding: 20,
+    alignItems: "flex-end",
   },
 
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "900",
     textAlign: "center",
-    color: COLORS.primary,
-    marginTop: 10,
+    width: "100%",
   },
 
   subtitle: {
     textAlign: "center",
-    color: COLORS.textSecondary,
+    width: "100%",
     marginTop: 6,
   },
 
   center: {
     alignItems: "center",
     marginVertical: 30,
+    width: "100%",
   },
 
-  sosButton: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+  circle: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "#dc2626",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.primary,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
   },
 
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 14,
-    borderLeftWidth: 5,
-    borderLeftColor: COLORS.primary,
-    borderColor: COLORS.border,
+    width: "100%",
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#f3f3f3",
   },
 
   row: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "flex-start",
+    gap: 8,
+    marginBottom: 6,
   },
 
   text: {
     fontSize: 16,
     fontWeight: "700",
     textAlign: "right",
-    color: COLORS.textPrimary,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 12,
   },
 
   sectionTitle: {
     fontSize: 16,
     fontWeight: "900",
-    marginBottom: 10,
     textAlign: "right",
-    color: COLORS.primary,
+    marginBottom: 10,
   },
 
   actionRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
+    justifyContent: "flex-start",
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
 
   actionText: {
     fontSize: 14,
-    color: COLORS.textSecondary,
     textAlign: "right",
   },
 
-  footer: {
-    marginTop: 30,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: "#ecfdf5",
+  button: {
+    width: "100%",
     flexDirection: "row-reverse",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.success,
+    backgroundColor: "#dc2626",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 20,
     gap: 8,
   },
 
-  footerText: {
-    fontSize: 15,
+  buttonText: {
+    color: "#fff",
     fontWeight: "900",
-    color: COLORS.textPrimary,
+    fontSize: 15,
   },
 });

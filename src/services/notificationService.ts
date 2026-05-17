@@ -26,7 +26,7 @@ Notifications.addNotificationResponseReceivedListener((response) => {
   };
 
   router.push({
-    pathname: "./app/alert-details.tsx",
+    pathname: "/alert-details",
     params: {
       type: data.type,
       location: data.location,
