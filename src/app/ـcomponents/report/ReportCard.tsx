@@ -24,6 +24,9 @@ export default function ReportCard({
   const scale = useRef(new Animated.Value(1)).current;
   const router = useRouter();
 
+  const textColor = isDark ? "#FFFFFF" : "#111827";
+  const subTextColor = isDark ? "#FFFFFF" : "#6B7280";
+
   const handlePressIn = () => {
     Animated.spring(scale, {
       toValue: 0.97,
@@ -102,7 +105,7 @@ export default function ReportCard({
                   />
                 </View>
 
-                <Text style={[styles.title, { color: "#FFFFFF" }]}>
+                <Text style={[styles.title, { color: textColor }]}>
                   تقرير {report.type}
                 </Text>
               </View>
@@ -122,16 +125,16 @@ export default function ReportCard({
 
             {/* Date */}
             <View style={styles.row}>
-              <Ionicons name="calendar-outline" size={14} color="#FFFFFF" />
-              <Text style={[styles.text, { color: "#FFFFFF" }]}>
+              <Ionicons name="calendar-outline" size={14} color={textColor} />
+              <Text style={[styles.text, { color: subTextColor }]}>
                 {new Date(report.createdAt).toLocaleDateString("ar-EG")}
               </Text>
             </View>
 
             {/* Location */}
             <View style={styles.row}>
-              <Ionicons name="location-outline" size={14} color="#FFFFFF" />
-              <Text style={[styles.text, { color: "#FFFFFF" }]}>
+              <Ionicons name="location-outline" size={14} color={textColor} />
+              <Text style={[styles.text, { color: subTextColor }]}>
                 {report.location}
               </Text>
             </View>
@@ -141,10 +144,10 @@ export default function ReportCard({
     </Swipeable>
   );
 }
+
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row-reverse",
-    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     marginBottom: 14,
     shadowOpacity: 0.05,
@@ -197,7 +200,6 @@ const styles = StyleSheet.create({
   text: {
     marginRight: 6,
     fontSize: 13,
-    color: "#6B7280",
   },
   deleteButton: {
     backgroundColor: "#FF3B30",
