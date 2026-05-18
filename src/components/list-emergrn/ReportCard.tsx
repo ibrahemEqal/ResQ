@@ -1,8 +1,12 @@
-import { COLORS } from '@/constants/colors';
-import { EmergencyType, Report } from '@/types';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getStatusColor, getStatusLabel, getTimeAgo, getTypeLabel } from '../../app/list-emergrn/store';
+import {
+  getStatusColor,
+  getStatusLabel,
+  getTimeAgo,
+  getTypeLabel,
+} from "@/app/list-emergrn/store";
+import { COLORS } from "@/constants/colors";
+import { EmergencyType, Report } from "@/types";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ReportCardProps {
   report: Report;
@@ -23,7 +27,9 @@ export function ReportCard({ report, isExpanded, onPress }: ReportCardProps) {
         <Text style={styles.typeText}>
           {getTypeLabel(report.type as EmergencyType)}
         </Text>
-        <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
+        <View
+          style={[styles.statusBadge, { backgroundColor: statusColor + "22" }]}
+        >
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           <Text style={[styles.statusText, { color: statusColor }]}>
             {getStatusLabel(report.status)}
@@ -66,18 +72,18 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   typeText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     paddingHorizontal: 9,
     paddingVertical: 4,
@@ -90,11 +96,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
   },
   locationIcon: {
@@ -104,7 +110,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: COLORS.textSecondary,
-    textAlign: 'right',
+    textAlign: "right",
   },
   descriptionBox: {
     backgroundColor: COLORS.background,
@@ -115,17 +121,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textPrimary,
     lineHeight: 20,
-    textAlign: 'right',
+    textAlign: "right",
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   reportId: {
     fontSize: 11,
     color: COLORS.textSecondary,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
   },
   timeText: {
     fontSize: 11,
