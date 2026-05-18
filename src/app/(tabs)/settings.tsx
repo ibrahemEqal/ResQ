@@ -1,5 +1,9 @@
 import { useTheme } from "@/context/ThemeContext";
+import { uploadImageToCloudinary } from "@/services/cloudinaryService";
+import { deleteToken } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import {
   EmailAuthProvider,
@@ -12,8 +16,6 @@ import {
   User,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import * as ImagePicker from "expo-image-picker";
-import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,7 +31,6 @@ import {
 } from "react-native";
 import { auth, db } from "../../config/firebaseConfig";
 import { COLORS } from "../../constants/colors";
-import { uploadImageToCloudinary } from "@/services/cloudinaryService";
 
 export default function Settings() {
   const [user, setUser] = useState<User | null>(null);
@@ -132,15 +133,11 @@ export default function Settings() {
   };
 
   const handleChangeProfilePhoto = () => {
-    Alert.alert(
-      "صورة البروفايل",
-      "اختر مصدر الصورة",
-      [
-        { text: "إلغاء", style: "cancel" },
-        { text: "من المعرض", onPress: () => void pickProfileFromLibrary() },
-        { text: "التقاط صورة", onPress: () => void pickProfileFromCamera() },
-      ],
-    );
+    Alert.alert("صورة البروفايل", "اختر مصدر الصورة", [
+      { text: "إلغاء", style: "cancel" },
+      { text: "من المعرض", onPress: () => void pickProfileFromLibrary() },
+      { text: "التقاط صورة", onPress: () => void pickProfileFromCamera() },
+    ]);
   };
 
   const { isDark, toggleTheme } = useTheme();
@@ -160,8 +157,7 @@ export default function Settings() {
               photo = d.photoURL;
             }
           }
-        } catch {
-        }
+        } catch {}
         setProfilePhotoUrl(photo);
       } else {
         router.replace("./login");
@@ -177,8 +173,15 @@ export default function Settings() {
         text: "خروج",
         style: "destructive",
         onPress: async () => {
-          await signOut(auth);
-          router.replace("./login");
+          try {
+            if (!user) return;
+
+            await deleteToken(user.uid);
+            await signOut(auth);
+            router.replace("./login");
+          } catch (error) {
+            console.log(error);
+          }
         },
       },
     ]);
