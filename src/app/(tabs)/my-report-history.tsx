@@ -1,133 +1,175 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { useRouter } from "expo-router";
-import React, { useLayoutEffect, useMemo, useState, useEffect } from "react";
-import { useAppTheme } from "@/hooks/useAppTheme"; 
-import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { useQuery } from "@tanstack/react-query";
-
-import Filters from "@/app/ـcomponents/report/Filters";
-import ReportCard from "@/app/ـcomponents/report/ReportCard";
-import { auth } from "@/config/firebaseConfig";
-import { COLORS } from "@/constants/colors";
+import { auth, db } from "@/config/firebaseConfig";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { getReportsByUser } from "@/services/reportService";
 import { Report, ReportStatus } from "@/types";
+import { useFocusEffect } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
+import { deleteDoc, doc } from "firebase/firestore";
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-export default function ReportsScreen() {
-    const router = useRouter();
-    const navigation = useNavigation();
-    const { colors, isDark } = useAppTheme();
+import Filters from "../ـcomponents/report/Filters";
+import ReportsHeader from "../ـcomponents/report/HeaderReport";
+import ReportCard from "../ـcomponents/report/ReportCard";
 
-    const [userId, setUserId] = useState<string | null>(null);
-    const [filter, setFilter] = useState<ReportStatus | "All">("All");
+export default function MyReportHistory() {
+  const { colors } = useAppTheme();
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUserId(user?.uid || null);
-        });
-        return unsubscribe;
-    }, []);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [filter, setFilter] = useState<ReportStatus | "All">("All");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const {
-        data: reports = [],
-        isLoading,
-        isRefetching,
-        refetch
-    } = useQuery({
-        queryKey: ['myReports', userId],
-        queryFn: async () => {
-            if (!userId) return [];
-            const data = await getReportsByUser(userId);
-            return [...data]
-                .filter((r) => r.userId === userId)
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        },
-        enabled: !!userId,
-        staleTime: 1000 * 60 * 5,
+  const loadUser = useCallback(() => {
+    return new Promise<string | null>((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        unsubscribe();
+
+        if (!user?.uid) {
+          setError("يجب تسجيل الدخول أولاً");
+          resolve(null);
+        } else {
+          resolve(user.uid);
+        }
+      });
     });
+  }, []);
 
-    const filteredReports = useMemo(() => {
-        return reports.filter((r) =>
-            filter === "All" ? true : r.status === filter,
-        );
-    }, [reports, filter]);
+  const loadReports = useCallback(async () => {
+    try {
+      const uid = await loadUser();
+      if (!uid) return;
 
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            headerStyle: {
-                backgroundColor: isDark ? colors.surface : colors.primary,
-            },
-            headerTintColor: "#fff",
-            headerRight: () => (
-                <TouchableOpacity onPress={() => router.push("/report")} style={{ marginRight: 15 }}>
-                    <Ionicons name="add-circle" size={28} color="#fff" />
-                </TouchableOpacity>
-            ),
-        });
-    }, [navigation, router, isDark, colors]);
+      setError(null);
 
-    if (isLoading && !userId) return null;
+      const data = await getReportsByUser(uid);
+      const myReports = data.filter((r) => r.userId === uid);
 
-    if (isLoading && !isRefetching) {
-        return (
-            <View style={[styles.centered, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={{ color: colors.text, marginTop: 10 }}>جاري تحميل بلاغاتك...</Text>
-            </View>
-        );
+      setReports(myReports);
+    } catch {
+      setError("تعذّر تحميل البلاغات");
     }
+  }, [loadUser]);
 
-    return (
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
-            <FlatList
-                data={filteredReports}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={{ paddingBottom: 20 }}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isRefetching}
-                        onRefresh={refetch}
-                        colors={[colors.primary]}
-                        tintColor={colors.primary} 
-                    />
-                }
-                renderItem={({ item }) => (
-                    <ReportCard
-                        report={item}
-                    />
-                )}
-                ListHeaderComponent={
-                    <View style={{ paddingHorizontal: 10 }}>
-                        <Text style={[styles.count, { color: colors.text }]}>
-                            {reports.length} بلاغ خاص بك
-                        </Text>
-                        <Filters filter={filter} setFilter={setFilter} />
-                    </View>
-                }
-                ListEmptyComponent={
-                    <View style={styles.centered}>
-                        <Ionicons name="document-text-outline" size={50} color={colors.subText} style={{ marginBottom: 10 }} />
-                        <Text style={[styles.empty, { color: colors.subText }]}>
-                            {userId ? "لا يوجد بلاغات خاصة بك" : "يجب تسجيل الدخول لرؤية بلاغاتك"}
-                        </Text>
-                    </View>
-                }
-            />
-        </View>
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      (async () => {
+        setLoading(true);
+        await loadReports();
+        if (active) setLoading(false);
+      })();
+
+      return () => {
+        active = false;
+      };
+    }, [loadReports]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadReports();
+    setRefreshing(false);
+  }, [loadReports]);
+
+  const filteredReports = useMemo(() => {
+    return reports.filter((r) =>
+      filter === "All" ? true : r.status === filter,
     );
+  }, [reports, filter]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "reports", id));
+      setReports((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      console.log("Delete error:", e);
+    }
+  };
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.text, marginTop: 10 }}>
+          جاري التحميل...
+        </Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={{ color: "#EF4444", fontWeight: "600" }}>{error}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <FlatList
+        style={{ flex: 1, backgroundColor: colors.background }}
+        data={filteredReports}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ReportCard report={item} onDelete={handleDelete} />
+        )}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={[
+          styles.listContainer,
+          filteredReports.length === 0 && { flex: 1 },
+        ]}
+        ListHeaderComponent={
+          <View style={styles.headerContainer}>
+            <ReportsHeader />
+
+            <View style={styles.filtersContainer}>
+              <Filters filter={filter} setFilter={setFilter} />
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.centered}>
+            <Text style={{ color: colors.subText }}>
+              لا يوجد بلاغات خاصة بك
+            </Text>
+          </View>
+        }
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    centered: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-    count: { textAlign: "right", marginVertical: 15, fontWeight: "700", fontSize: 16 },
-    empty: { textAlign: "center", fontSize: 16, fontWeight: "500" },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 30,
+  },
+
+  headerContainer: {
+    marginBottom: 10,
+  },
+
+  filtersContainer: {
+    marginTop: 10,
+  },
 });
