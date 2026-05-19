@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { arrayUnion, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../../config/firebaseConfig'; 
+import { db } from '@/config/firebaseConfig'; 
 import { statusArabic } from '../utils/statusMap';
 import { formatDate } from '../utils/formatDate';
 
@@ -28,6 +28,8 @@ type IncidentReport = {
   priority: string;
   createdAt: string;
   assignedResponder?: string;
+  imageUrl?: string;
+  audioUrl?: string;
   timeline?: TimelineItem[];
 };
 

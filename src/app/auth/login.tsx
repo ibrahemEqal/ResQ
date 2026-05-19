@@ -1,11 +1,18 @@
-import CustomInput from '@/app/ـcomponents/CustomInput';
-import { auth, db } from '@/config/firebaseConfig';
-import { COLORS } from '@/constants/colors';
-import { Theme } from '@/constants/theme';
-import { router } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import React, { useState } from 'react';
+import CustomInput from "@/app/ـcomponents/CustomInput";
+import { auth, db } from "@/config/firebaseConfig";
+import { COLORS } from "@/constants/colors";
+import { Theme } from "@/constants/theme";
+import {
+  registerForPushNotificationsAsync,
+  saveToken,
+} from "@/services/notificationService";
+import { router } from "expo-router";
+import {
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { Controller, useForm } from "react-hook-form";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,76 +21,75 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native';
-import { RFValue } from 'react-native-responsive-fontsize';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+  View
+} from "react-native";
+import { RFValue } from "react-native-responsive-fontsize";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading,setLoading]=useState(false);
-
-  const [errors, setErrors] = useState({
-    email: '',
-    password: '',
-  });
-
-  const validate = () => {
-    let valid = true;
-    const newErrors = {
-      email: '',
-      password: '',
-    };
-
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-      valid = false;
-    }
-
-    if (!password.trim()) {
-      newErrors.password = 'Password is required';
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
+  type FormData = {
+    email: string;
+    password: string;
   };
 
-  const handleLogin = async () => {
-    if (validate()) {
-      setLoading(true); 
-      
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const userUid = userCredential.user.uid;
-        
-        const userDocRef = doc(db, "users", userUid);
-        const userDocSnap = await getDoc(userDocRef);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+  const handleForgetPassword = async () => {
+    const email = control._formValues.email;
 
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          
-          if (userData.role === 'security' || userData.role === 'admin') {
-            router.replace('/(tabs)/dashboard');          } else {
-            router.replace('/home');
-          }
-        } else {
-          router.replace('/home'); 
-        }
+    if (!email) {
+      Alert.alert("Error", "Please enter your email first");
+      return;
+    }
 
-      } catch (error: any) {
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-          Alert.alert('خطأ', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
-        } else if (error.code === 'auth/invalid-email') {
-          Alert.alert('خطأ', 'صيغة البريد الإلكتروني غير صحيحة');
-        } else {
-          Alert.alert('حدث خطأ', error.message);
-        }
-      } finally {
-        setLoading(false);
+    try {
+      await sendPasswordResetEmail(auth, email);
+
+      Alert.alert("Success", "Password reset email sent");
+    } catch (error) {
+      Alert.alert("Error", "Failed to send reset email");
+    }
+  };
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password,
+      );
+
+      const user = userCredential.user;
+
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userData = userDoc.data();
+
+      console.log("USER ROLE:", userData?.role);
+
+      const token = await registerForPushNotificationsAsync();
+
+      console.log("TOKEN:", token);
+
+      if (token) {
+        await saveToken(user.uid, token, userData?.role?.trim() || "student");
       }
+
+      if (userData?.role?.trim() === "admin") {
+        router.replace("/dashboard");
+      } else {
+        router.replace("/home");
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Login Failed", "Email or password is incorrect");
     }
   };
 
@@ -91,7 +97,7 @@ export default function LoginScreen() {
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View style={styles.container}>
@@ -99,36 +105,56 @@ export default function LoginScreen() {
               <Text style={styles.title}>Welcome Back</Text>
               <Text style={styles.subtitle}>Login to continue</Text>
 
-              <CustomInput
-                label="Email"
-                iconName="mail-outline"
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                error={errors.email}
+              <Controller
+                control={control}
+                name="email"
+                rules={{
+                  required: "Email is required",
+                }}
+                render={({ field: { value, onChange } }) => (
+                  <CustomInput
+                    label="Email"
+                    iconName="mail-outline"
+                    placeholder="Enter your email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.email?.message}
+                  />
+                )}
+              />
+              <Controller
+                control={control}
+                name="password"
+                rules={{
+                  required: "Password is required",
+                }}
+                render={({ field: { value, onChange } }) => (
+                  <CustomInput
+                    label="Password"
+                    iconName="lock-closed-outline"
+                    placeholder="Enter your password"
+                    secureTextEntry
+                    value={value}
+                    onChangeText={onChange}
+                    error={errors.password?.message}
+                  />
+                )}
               />
 
-              <CustomInput
-                label="Password"
-                iconName="lock-closed-outline"
-                placeholder="Enter your password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                error={errors.password}
-              />
-
-              <TouchableOpacity style={styles.button} onPress={handleLogin}>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleSubmit(onSubmit)}
+              >
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity>
+              <TouchableOpacity onPress={handleForgetPassword}>
                 <Text style={styles.link}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => router.push('./signup')}>
+              <TouchableOpacity onPress={() => router.push("./signup")}>
                 <Text style={styles.signupLink}>
                   Don’t have an account? Sign Up
                 </Text>
@@ -145,7 +171,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: Theme.spacing.lg,
   },
   card: {
@@ -157,42 +183,41 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: RFValue(24),
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.textPrimary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Theme.spacing.sm,
   },
   subtitle: {
     fontSize: RFValue(14),
     color: COLORS.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Theme.spacing.xl,
   },
   button: {
     backgroundColor: COLORS.primary,
     borderRadius: Theme.radius.md,
     paddingVertical: Theme.spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: Theme.spacing.sm,
   },
   buttonText: {
     color: COLORS.surface,
     fontSize: RFValue(16),
-    fontWeight: '700',
+    fontWeight: "700",
   },
   link: {
     marginTop: Theme.spacing.lg,
-    textAlign: 'center',
+    textAlign: "center",
     color: COLORS.secondary,
     fontSize: RFValue(13),
-    fontWeight: '600',
+    fontWeight: "600",
   },
   signupLink: {
     marginTop: Theme.spacing.md,
-    textAlign: 'center',
+    textAlign: "center",
     color: COLORS.primary,
     fontSize: RFValue(13),
-    fontWeight: '700',
+    fontWeight: "700",
   },
-
 });

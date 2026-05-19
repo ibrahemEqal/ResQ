@@ -1,6 +1,9 @@
+import { COLORS } from "@/constants/colors";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -9,40 +12,48 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert
 } from "react-native";
-import { COLORS } from "@/constants/colors";
 
 import { auth, db } from "@/config/firebaseConfig";
+import { deleteToken } from "@/services/notificationService";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { signOut, onAuthStateChanged } from "firebase/auth";
 
 export default function Home() {
+  const { colors, isDark } = useAppTheme();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("جاري التحميل...");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
+          let photo: string | null = user.photoURL ?? null;
           const docRef = doc(db, "users", user.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserRole(data.role);
             setUserName(data.fullName || "مستخدم");
+            if (typeof data.photoURL === "string" && data.photoURL.length > 0) {
+              photo = data.photoURL;
+            }
           } else {
             setUserName("مستخدم");
           }
+          setProfilePhotoUrl(photo);
         } catch (error) {
           console.error("Error fetching user data:", error);
           setUserName("مستخدم");
+          setProfilePhotoUrl(user.photoURL ?? null);
         }
       } else {
         setUserName("زائر");
         setUserRole(null);
+        setProfilePhotoUrl(null);
       }
     });
 
@@ -51,10 +62,16 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
+      const uid = auth.currentUser?.uid;
+
+      if (uid) {
+        await deleteToken(uid);
+      }
+
       await signOut(auth);
-      router.replace('/auth/login');
+
+      router.replace("/auth/login");
     } catch (error) {
-      Alert.alert("خطأ", "حدثت مشكلة أثناء تسجيل الخروج");
       console.error(error);
     }
   };
@@ -79,42 +96,71 @@ export default function Home() {
   }, [pulseAnim]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>صباح الخير،</Text>
-            <Text style={styles.userName}>{userName}</Text>
+            <Text style={[styles.greeting, { color: colors.subText }]}>
+              صباح الخير،
+            </Text>
+            <Text style={[styles.userName, { color: colors.text }]}>
+              {userName}
+            </Text>
             <View style={styles.locationBadge}>
               <Ionicons name="location" size={12} color={COLORS.secondary} />
-              <Text style={styles.locationText}>جامعة النجاح الوطنية</Text>
+              <Text style={[styles.locationText, { color: colors.subText }]}>
+                جامعة النجاح الوطنية
+              </Text>
             </View>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <TouchableOpacity
-              style={styles.profileAvatar}
+              style={[
+                styles.profileAvatar,
+                { backgroundColor: colors.surface },
+              ]}
               onPress={() => router.push("./settings")}
               activeOpacity={0.7}
             >
-              <Ionicons name="person" size={24} color={COLORS.primary} />
+              {profilePhotoUrl ? (
+                <Image
+                  source={{ uri: profilePhotoUrl }}
+                  style={styles.profileAvatarImage}
+                  contentFit="cover"
+                  accessibilityLabel="صورة البروفايل"
+                />
+              ) : (
+                <Ionicons name="person" size={24} color={COLORS.primary} />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.profileAvatar, { backgroundColor: '#FFEBEE' }]}
+              style={[
+                styles.profileAvatar,
+                { backgroundColor: isDark ? "#451A1A" : "#FFEBEE" },
+              ]}
               onPress={handleLogout}
               activeOpacity={0.7}
             >
-              <Ionicons name="log-out-outline" size={24} color="#C62828" />
+              <Ionicons
+                name="log-out-outline"
+                size={24}
+                color={isDark ? "#F87171" : "#C62828"}
+              />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* زر SOS */}
         <View style={styles.sosContainer}>
           <Animated.View
             style={[
               styles.sosPulseCircle,
               {
+                backgroundColor: COLORS.primary,
                 transform: [{ scale: pulseAnim }],
                 opacity: pulseAnim.interpolate({
                   inputRange: [1, 1.15],
@@ -127,93 +173,140 @@ export default function Home() {
           <TouchableOpacity
             style={styles.sosButton}
             activeOpacity={0.8}
-            onLongPress={() => router.push('/report')}
+            onLongPress={() => router.push("/report")}
             delayLongPress={800}
           >
             <Ionicons name="warning" size={48} color={COLORS.surface} />
             <Text style={styles.sosText}>SOS</Text>
           </TouchableOpacity>
 
-          <Text style={styles.sosInstruction}>
+          <Text style={[styles.sosInstruction, { color: colors.subText }]}>
             اضغط مطولاً للإبلاغ عن حالة طارئة
           </Text>
         </View>
 
         <View style={styles.grid}>
-          {/* Card 1: Tips */}
           <TouchableOpacity
-            style={styles.premiumCard}
+            style={[styles.premiumCard, { backgroundColor: colors.surface }]}
             onPress={() => router.push("/tips")}
             activeOpacity={0.8}
           >
             <View style={styles.cardHeader}>
               <View
-                style={[styles.iconWrapper, { backgroundColor: "#E8F5E9" }]}
+                style={[
+                  styles.iconWrapper,
+                  { backgroundColor: isDark ? "#064E3B" : "#E8F5E9" },
+                ]}
               >
-                <Ionicons name="shield-checkmark" size={24} color="#2E7D32" />
+                <Ionicons
+                  name="shield-checkmark"
+                  size={24}
+                  color={isDark ? "#4ADE80" : "#2E7D32"}
+                />
               </View>
               <Ionicons
                 name="chevron-back"
                 size={20}
-                color={COLORS.textSecondary}
+                color={colors.subText}
                 style={{ opacity: 0.5 }}
               />
             </View>
-            <Text style={styles.cardTitle}>دليل الطوارئ</Text>
-            <Text style={styles.cardDesc}>كيف تتصرف؟</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              دليل الطوارئ
+            </Text>
+            <Text style={[styles.cardDesc, { color: colors.subText }]}>
+              كيف تتصرف؟
+            </Text>
           </TouchableOpacity>
 
-          {(userRole === 'security' || userRole === 'admin') && (
+          {(userRole === "responder" || userRole === "admin") && (
             <TouchableOpacity
-              style={styles.premiumCard}
+              style={[styles.premiumCard, { backgroundColor: colors.surface }]}
               onPress={() => router.push("/(tabs)/dashboard")}
               activeOpacity={0.8}
             >
               <View style={styles.cardHeader}>
                 <View
-                  style={[styles.iconWrapper, { backgroundColor: "#E3F2FD" }]}
+                  style={[
+                    styles.iconWrapper,
+                    { backgroundColor: isDark ? "#1E3A8A" : "#E3F2FD" },
+                  ]}
                 >
-                  <Ionicons name="stats-chart" size={24} color="#1565C0" />
+                  <Ionicons
+                    name="stats-chart"
+                    size={24}
+                    color={isDark ? "#60A5FA" : "#1565C0"}
+                  />
                 </View>
                 <Ionicons
                   name="chevron-back"
                   size={20}
-                  color={COLORS.textSecondary}
+                  color={colors.subText}
                   style={{ opacity: 0.5 }}
                 />
               </View>
-              <Text style={styles.cardTitle}>المتابعة</Text>
-              <Text style={styles.cardDesc}>لوحة التحكم</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                المتابعة
+              </Text>
+              <Text style={[styles.cardDesc, { color: colors.subText }]}>
+                لوحة التحكم
+              </Text>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={styles.premiumCard} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.premiumCard, { backgroundColor: colors.surface }]}
+            activeOpacity={0.8}
+            onPress={() => router.push("/list-emergrn")}
+          >
             <View style={styles.cardHeader}>
               <View
-                style={[styles.iconWrapper, { backgroundColor: "#FFF3E0" }]}
+                style={[
+                  styles.iconWrapper,
+                  { backgroundColor: isDark ? "#78350F" : "#FFF3E0" },
+                ]}
               >
-                <Ionicons name="notifications" size={24} color="#EF6C00" />
+                <Ionicons
+                  name="notifications"
+                  size={24}
+                  color={isDark ? "#FB923C" : "#EF6C00"}
+                />
               </View>
               <View style={styles.notificationDot} />
             </View>
-            <Text style={styles.cardTitle}>تنبيهات</Text>
-            <Text style={styles.cardDesc}>لا توجد أخطار</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              الخريطة الحية
+            </Text>
+            <Text style={[styles.cardDesc, { color: colors.subText }]}>
+              متابعة البلاغات
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.premiumCard}
+            style={[styles.premiumCard, { backgroundColor: colors.surface }]}
             activeOpacity={0.8}
             onPress={() => router.push("/my-report-history")}
           >
             <View style={styles.cardHeader}>
               <View
-                style={[styles.iconWrapper, { backgroundColor: "#FFEBEE" }]}
+                style={[
+                  styles.iconWrapper,
+                  { backgroundColor: isDark ? "#451A1A" : "#FFEBEE" },
+                ]}
               >
-                <Ionicons name="time" size={24} color="#C62828" />
+                <Ionicons
+                  name="time"
+                  size={24}
+                  color={isDark ? "#F87171" : "#C62828"}
+                />
               </View>
             </View>
-            <Text style={styles.cardTitle}>سجل البلاغات</Text>
-            <Text style={styles.cardDesc}>بلاغاتك السابقة</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              سجل البلاغات
+            </Text>
+            <Text style={[styles.cardDesc, { color: colors.subText }]}>
+              بلاغاتك السابقة
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -230,7 +323,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-  /* Header Styles */
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -280,9 +372,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+    overflow: "hidden",
+  },
+  profileAvatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
 
-  /* SOS Button Styles */
   sosContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -327,7 +424,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* Premium Cards Grid */
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",

@@ -1,116 +1,250 @@
-import { auth, storage } from "@/config/firebaseConfig";
+import { CATEGORIES } from "@/app/ـcomponents/report-components/CategoryGrid";
+import { auth } from "@/config/firebaseConfig";
+import { uploadAudioToCloudinary, uploadImageToCloudinary } from "@/services/cloudinaryService";
+import { submitReport } from "@/services/reportService";
+import { EmergencyType, ReportPriority } from "@/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
 
-import { CATEGORIES } from "@/app/ـcomponents/report-components/CategoryGrid";
-import { submitReport } from "../../services/reportService";
-import { EmergencyType, ReportPriority } from "../../types";
+export type VoiceAttachment = {
+  localUri: string;
+  url: string;
+  name: string;
+};
+
+const getAudioMimeType = (fileName: string) => {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "m4a";
+  if (ext === "m4a" || ext === "mp4") return "audio/mp4";
+  if (ext === "caf") return "audio/x-caf";
+  if (ext === "mp3") return "audio/mpeg";
+  if (ext === "wav") return "audio/wav";
+  if (ext === "3gp") return "audio/3gpp";
+  return "audio/m4a";
+};
+
+const recordingFileNameFromUri = (uri: string) => {
+  const clean = uri.split("?")[0].split("#")[0];
+  const seg = clean.split("/").pop() || "";
+  if (seg.includes(".")) return seg;
+  return `recording_${Date.now()}.m4a`;
+};
 
 export type MediaFile = {
   name: string;
-  type: "image" | "audio";
+  type: "image";
+  uri: string;
   url?: string;
+  publicId?: string;
 };
 
-export interface ReportStore {
-  selectedCategory: EmergencyType | null;
-  priority: ReportPriority | null;
-  description: string;
-  selectedCollege: string | null;
-  mediaFile: MediaFile | null;
-  mediaLoading: boolean;
-  submitting: boolean;
-  error: string | null;
-  clearError: () => void;
-  fadeAnim: Animated.Value;
-  slideAnim: Animated.Value;
-  submitScale: Animated.Value;
+const getFileExtension = (uri: string, fallback = "jpg") => {
+  const cleanUri = uri.split("?")[0].split("#")[0];
+  const match = cleanUri.match(/\.([a-zA-Z0-9]+)$/);
+  return (match?.[1] ?? fallback).toLowerCase();
+};
 
-  setSelectedCategory: (category: EmergencyType) => void;
-  setDescription: (text: string) => void;
-  setSelectedCollege: (college: string) => void;
-  handlePickMedia: () => Promise<void>;
-  handleSubmit: () => Promise<void>;
-}
+const getImageMimeType = (extension: string, mimeType?: string | null) => {
+  if (mimeType) return mimeType;
+  if (extension === "jpg") return "image/jpeg";
+  return `image/${extension}`;
+};
 
-export function useReportStore(): ReportStore {
+export function useReportStore() {
+  const queryClient = useQueryClient();
+
   const [selectedCategory, setSelectedCategoryRaw] =
     useState<EmergencyType | null>(null);
   const [priority, setPriority] = useState<ReportPriority | null>(null);
   const [description, setDescription] = useState("");
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<MediaFile | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [mediaLoading, setMediaLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [voiceAttachment, setVoiceAttachment] = useState<VoiceAttachment | null>(
+    null,
+  );
+  const [audioUploading, setAudioUploading] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const submitScale = useRef(new Animated.Value(1)).current;
 
-  const clearError = () => setError(null);
+  const reportMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCategory) throw new Error("يرجى اختيار نوع الطارئ");
+
+      const result = await submitReport({
+        userId: auth.currentUser?.uid ?? "unknown",
+        type: selectedCategory,
+        description: description.trim() || "لا يوجد وصف",
+        location: selectedCollege ?? "غير محدد",
+        ...(priority && { priority }),
+        ...(mediaFile?.url && { imageUrl: mediaFile.url }),
+        ...(voiceAttachment?.url && { audioUrl: voiceAttachment.url }),
+      });
+
+      if (!result.success) {
+        const err = result.error;
+        const msg =
+          err instanceof Error
+            ? err.message
+            : typeof err === "string"
+              ? err
+              : "فشل حفظ البلاغ";
+        throw new Error(msg);
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myReports"] });
+
+      Alert.alert("تم الإرسال ", "تم إرسال بلاغك بنجاح.", [
+        { text: "حسناً", onPress: () => router.back() },
+      ]);
+    },
+    onError: (err: any) => {
+      Alert.alert("خطأ", err.message || "فشل إرسال البلاغ");
+    },
+  });
 
   const setSelectedCategory = (category: EmergencyType) => {
     setSelectedCategoryRaw(category);
-    const match = CATEGORIES.find(
-      (c: (typeof CATEGORIES)[number]) => c.type === category,
-    );
+    const match = CATEGORIES.find((c) => c.type === category);
     setPriority(match?.priority ?? null);
   };
 
-  const handlePickMedia = async () => {
+  const uploadPickedAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    const timestamp = Date.now();
+    const extension = getFileExtension(asset.fileName || asset.uri, "jpg");
+    const fileName = asset.fileName || `photo_${timestamp}.${extension}`;
+    const mimeType = getImageMimeType(extension, asset.mimeType);
+    const uploadedImage = await uploadImageToCloudinary({
+      uri: asset.uri,
+      fileName,
+      mimeType,
+    });
+
+    setMediaFile({
+      name: fileName,
+      type: "image",
+      uri: asset.uri,
+      url: uploadedImage.optimizedUrl,
+      publicId: uploadedImage.publicId,
+    });
+  };
+
+  const pickFromLibrary = async () => {
     setMediaLoading(true);
-    clearError();
     try {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        setError("لا يوجد صلاحية للوصول إلى مكتبة الصور. تحقق من الإعدادات.");
+        Alert.alert("تنبيه", "يلزم السماح بالوصول إلى معرض الصور.");
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: false,
         quality: 0.8,
       });
 
       if (result.canceled || !result.assets?.length) return;
 
-      const asset = result.assets[0];
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const uid = auth.currentUser?.uid;
-
-      if (!uid) {
-        setError("يجب تسجيل الدخول أولاً لرفع الملفات.");
-        return;
-      }
-
-      const timestamp = Date.now();
-      const fileName = asset.fileName ?? `photo_${timestamp}.jpg`;
-      const storagePath = `report-media/${uid}/${timestamp}_${fileName}`;
-      const storageRef = ref(storage, storagePath);
-      await uploadBytes(storageRef, blob);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      setMediaFile({ name: fileName, type: "image", url: downloadURL });
-    } catch {
-      setError("فشل رفع الملف. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
+      await uploadPickedAsset(result.assets[0]);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "فشل رفع الصورة";
+      Alert.alert("خطأ", message, [
+        {
+          text: "الإعدادات",
+          onPress: () => router.push("/(tabs)/settings" as any),
+        },
+        { text: "حسنًا", style: "cancel" },
+      ]);
     } finally {
       setMediaLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!selectedCategory) {
-      Alert.alert("تنبيه", "يرجى اختيار نوع الطارئ أولاً.");
-      return;
-    }
+  const pickFromCamera = async () => {
+    setMediaLoading(true);
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("تنبيه", "يلزم السماح باستخدام الكاميرا لتصوير البلاغ.");
+        return;
+      }
 
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      await uploadPickedAsset(result.assets[0]);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "فشل رفع الصورة";
+      Alert.alert("خطأ", message, [
+        {
+          text: "الإعدادات",
+          onPress: () => router.push("/(tabs)/settings" as any),
+        },
+        { text: "حسنًا", style: "cancel" },
+      ]);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const clearVoiceAttachment = () => {
+    setVoiceAttachment(null);
+  };
+
+  const uploadRecordedAudio = async (localUri: string) => {
+    setAudioUploading(true);
+    try {
+      const fileName = recordingFileNameFromUri(localUri);
+      const mimeType = getAudioMimeType(fileName);
+      const uploaded = await uploadAudioToCloudinary({
+        uri: localUri,
+        fileName,
+        mimeType,
+      });
+      setVoiceAttachment({
+        localUri,
+        url: uploaded.secureUrl,
+        name: fileName,
+      });
+    } catch (e) {
+      setVoiceAttachment(null);
+      const message =
+        e instanceof Error ? e.message : "فشل رفع التسجيل الصوتي";
+      Alert.alert("خطأ", message, [
+        {
+          text: "الإعدادات",
+          onPress: () => router.push("/(tabs)/settings" as any),
+        },
+        { text: "حسنًا", style: "cancel" },
+      ]);
+    } finally {
+      setAudioUploading(false);
+    }
+  };
+
+  const handleMediaPress = () => {
+    Alert.alert("صورة مع البلاغ", "اختر مصدر الصورة", [
+      { text: "إلغاء", style: "cancel" },
+      { text: "من المعرض", onPress: () => void pickFromLibrary() },
+      { text: "التقاط صورة", onPress: () => void pickFromCamera() },
+    ]);
+  };
+
+  const handleSubmit = async () => {
     Animated.sequence([
       Animated.timing(submitScale, {
         toValue: 0.94,
@@ -124,28 +258,7 @@ export function useReportStore(): ReportStore {
       }),
     ]).start();
 
-    setSubmitting(true);
-    clearError();
-    try {
-      await submitReport({
-        userId: auth.currentUser?.uid ?? "unknown",
-        type: selectedCategory,
-        description: description.trim() || "لا يوجد وصف",
-        location: selectedCollege ?? "غير محدد",
-        ...(priority && { priority }),
-        ...(mediaFile?.url && { imageUrl: mediaFile.url }),
-      });
-
-      Alert.alert(
-        "تم الإرسال ✅",
-        "تم إرسال بلاغك بنجاح. سيتم التواصل معك قريباً.",
-        [{ text: "حسناً", onPress: () => router.back() }],
-      );
-    } catch {
-      setError("فشل إرسال البلاغ. تحقق من اتصالك بالإنترنت وحاول مجدداً.");
-    } finally {
-      setSubmitting(false);
-    }
+    reportMutation.mutate();
   };
 
   return {
@@ -155,16 +268,20 @@ export function useReportStore(): ReportStore {
     selectedCollege,
     mediaFile,
     mediaLoading,
-    submitting,
-    error,
-    clearError,
+    submitting: reportMutation.isPending,
+    error: reportMutation.isError ? "فشل الإرسال" : null,
+    clearError: () => reportMutation.reset(),
     fadeAnim,
     slideAnim,
     submitScale,
     setSelectedCategory,
     setDescription,
     setSelectedCollege,
-    handlePickMedia,
+    voiceAttachment,
+    audioUploading,
+    clearVoiceAttachment,
+    uploadRecordedAudio,
+    handleMediaPress,
     handleSubmit,
   };
 }

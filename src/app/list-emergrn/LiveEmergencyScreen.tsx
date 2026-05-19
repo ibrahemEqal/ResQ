@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import {
   ActivityIndicator,
   SafeAreaView,
@@ -9,7 +9,6 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-
 import { COLORS } from '../../constants/colors';
 import { ReportStatus } from '../../types';
 import {
@@ -22,16 +21,35 @@ import {
   getTypeLabel,
   useLiveEmergencyStore,
 } from './store';
-
 import { EmergencyHeader } from '@/components/list-emergrn/EmergencyHeader';
-import { FilterPills }     from '@/components/list-emergrn/FilterPills';
+import { FilterPills } from '@/components/list-emergrn/FilterPills';
 import { EmergencyMapView } from '@/components/list-emergrn/MapView';
-import { ReportList }      from '@/components/list-emergrn/ReportList';
-import { SearchBar }       from '@/components/list-emergrn/SearchBar';
-import { ViewToggle }      from '@/components/list-emergrn/ViewToggle';
+import { ReportList } from '@/components/list-emergrn/ReportList';
+import { SearchBar } from '@/components/list-emergrn/SearchBar';
+import { ViewToggle } from '@/components/list-emergrn/ViewToggle';
 
 export function LiveEmergencyScreen() {
   const store = useLiveEmergencyStore();
+
+  const typeOptions = useMemo(() => TYPE_FILTERS.map((t: FilterType) => ({
+    value: t,
+    label: t === 'All' ? '🔎 الكل' : getTypeLabel(t as Exclude<FilterType, 'All'>),
+  })), []);
+
+  const statusOptions = useMemo(() => STATUS_FILTERS.map((s: FilterStatus) => ({
+    value: s,
+    label: s === 'All' ? 'كل الحالات' : getStatusLabel(s as Exclude<FilterStatus, 'All'>),
+  })), []);
+
+  const getStatusPillStyle = useCallback((value: string): ViewStyle => ({
+    backgroundColor: getStatusColor(value as ReportStatus) + '22',
+    borderColor: getStatusColor(value as ReportStatus),
+  }), []);
+
+  const getActiveTextStyle = useCallback((v: string) => ({
+    color: getStatusColor(v === 'All' ? 'Open' : v as ReportStatus)
+  }), []);
+
 
   if (store.loading) {
     return (
@@ -53,21 +71,6 @@ export function LiveEmergencyScreen() {
       </View>
     );
   }
-
-  const typeOptions = TYPE_FILTERS.map((t: FilterType) => ({
-    value: t,
-    label: t === 'All' ? '🔎 الكل' : getTypeLabel(t as Exclude<FilterType, 'All'>),
-  }));
-
-  const statusOptions = STATUS_FILTERS.map((s: FilterStatus) => ({
-    value: s,
-    label: s === 'All' ? 'كل الحالات' : getStatusLabel(s as Exclude<FilterStatus, 'All'>),
-  }));
-
-  const getStatusPillStyle = (value: string): ViewStyle => ({
-    backgroundColor: getStatusColor(value as ReportStatus) + '22',
-    borderColor:     getStatusColor(value as ReportStatus),
-  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -99,9 +102,7 @@ export function LiveEmergencyScreen() {
         value={store.selectedStatus}
         onChange={(v) => store.setSelectedStatus(v as FilterStatus)}
         getActivePillStyle={getStatusPillStyle}
-        getActiveTextStyle={(v) => ({
-          color: getStatusColor(v === 'All' ? 'Open' : v as ReportStatus),
-        })}
+        getActiveTextStyle={getActiveTextStyle}
       />
 
       {store.viewMode === 'list' ? (
@@ -110,7 +111,7 @@ export function LiveEmergencyScreen() {
           refreshing={store.refreshing}
           onRefresh={store.handleRefresh}
           expandedId={store.expandedId}
-          onCardPress={(id: string | null) => store.setExpandedId(id)}
+          onCardPress={store.setExpandedId}
         />
       ) : (
         <EmergencyMapView

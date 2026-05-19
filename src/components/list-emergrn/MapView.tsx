@@ -64,7 +64,6 @@ const checkPinMatch = (pin: typeof BUILDINGS[0], report: Report) => {
   
   if (reportLoc.includes(pinName) || pinName.includes(reportLoc)) return true;
 
-  // Ignore common words used in combinations that could cause broad unwanted match
   const ignoreWords = ['كليه', 'مركز', 'مبني', 'مبنى', 'قسم', 'ساحه', 'دوار'];
   const pinWords = pinName.split(' ').filter(w => w.length >= 2 && !ignoreWords.includes(w));
   const reportWords = reportLoc.split(' ').filter(w => w.length >= 2 && !ignoreWords.includes(w));
